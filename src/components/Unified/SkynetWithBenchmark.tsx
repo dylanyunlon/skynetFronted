@@ -12,12 +12,13 @@ import {
 import { UnifiedChatInterface } from './UnifiedChatInterface';
 import { EnhancedBenchmarkInterface } from '@/components/Benchmark/EnhancedBenchmarkInterface';
 import { RepoMasterBenchmarkInterface } from '@/components/Benchmark/RepoMasterBenchmarkInterface';
+import { AgenticChat } from '@/components/Agentic';
 import { Project } from '@/types';
 
 console.log('[SkynetWithBenchmark] Module loaded - v2 with RepoMaster support');
 
 // 扩展模式类型：chat | benchmark (旧版) | repomaster (新版)
-type ViewMode = 'chat' | 'benchmark' | 'repomaster';
+type ViewMode = 'chat' | 'benchmark' | 'repomaster'  | 'agentic';
 
 interface SkynetWithBenchmarkProps {
   onProjectCreated?: (project: Project) => void;
@@ -37,6 +38,13 @@ const ModeSelector: React.FC<{
   console.log('[ModeSelector] Rendering with currentMode:', currentMode);
 
   const modes = [
+    {
+      id: 'agentic',
+   name: 'Agentic Loop',
+   description: 'AI 自主工具循环',
+ icon: Zap,
+    color: 'yellow'
+  },
     {
       id: 'chat' as const,
       name: 'Vibe Coding',
@@ -123,6 +131,7 @@ const ModeSelector: React.FC<{
                       <div className="w-2 h-2 rounded-full bg-green-500" />
                     </div>
                   )}
+                  {currentMode === 'agentic' && <AgenticChat />}
                 </button>
               );
             })}
