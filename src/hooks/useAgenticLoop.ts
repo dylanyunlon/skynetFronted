@@ -1,33 +1,19 @@
 // src/hooks/useAgenticLoop.ts
-// Agentic Loop SSE 连接 Hook
-//
-// 用法:
-//   const { blocks, status, runTask, stop } = useAgenticLoop();
-//   await runTask({ task: "创建一个 Flask API" });
+// Agentic Loop SSE Hook — v3 (supports all Claude Code event types)
 
 import { useState, useCallback, useRef } from 'react';
-import {
-  AgenticEvent,
-  AgenticBlock,
-  AgenticTaskRequest,
-} from '@/types/agentic';
+import { AgenticEvent, AgenticBlock, AgenticTaskRequest, ToolResultMeta } from '@/types/agentic';
 
 export type AgenticStatus = 'idle' | 'running' | 'done' | 'error';
 
 interface AgenticLoopState {
-  /** 渲染块列表（前端 UI 直接映射） */
   blocks: AgenticBlock[];
-  /** 运行状态 */
   status: AgenticStatus;
-  /** 错误信息 */
   error: string | null;
-  /** 统计 */
   turns: number;
   totalToolCalls: number;
   duration: number;
-  /** 当前 model */
   model: string;
-  /** 工作目录 */
   workDir: string;
 }
 
@@ -35,69 +21,36 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://baloonet.tech:174
 
 export function useAgenticLoop() {
   const [state, setState] = useState<AgenticLoopState>({
-    blocks: [],
-    status: 'idle',
-    error: null,
-    turns: 0,
-    totalToolCalls: 0,
-    duration: 0,
-    model: '',
-    workDir: '',
+    blocks: [], status: 'idle', error: null,
+    turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '',
   });
 
-  const eventSourceRef = useRef<EventSource | null>(null);
-  // 用来关联 tool_start 和 tool_result
+  const abortRef = useRef<AbortController | null>(null);
   const pendingToolsRef = useRef<Map<string, number>>(new Map());
   const blockIdCounter = useRef(0);
-
   const nextId = () => `ab_${++blockIdCounter.current}`;
 
-  /** 重置状态 */
   const reset = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     pendingToolsRef.current.clear();
     blockIdCounter.current = 0;
-    setState({
-      blocks: [],
-      status: 'idle',
-      error: null,
-      turns: 0,
-      totalToolCalls: 0,
-      duration: 0,
-      model: '',
-      workDir: '',
-    });
+    setState({ blocks: [], status: 'idle', error: null, turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '' });
   }, []);
 
-  /** 处理单个 SSE 事件 */
   const handleEvent = useCallback((event: AgenticEvent) => {
     setState((prev) => {
       const blocks = [...prev.blocks];
 
       switch (event.type) {
         case 'start':
-          return {
-            ...prev,
-            status: 'running',
-            model: event.model,
-            workDir: event.work_dir,
-          };
+          return { ...prev, status: 'running' as AgenticStatus, model: event.model, workDir: event.work_dir };
 
         case 'text': {
-          // 合并相邻 text 块（同一 turn）
           const last = blocks[blocks.length - 1];
           if (last && last.type === 'text' && last.turn === (event.turn ?? 0)) {
             last.content = (last.content || '') + event.content;
           } else {
-            blocks.push({
-              id: nextId(),
-              type: 'text',
-              turn: event.turn ?? 0,
-              content: event.content,
-            });
+            blocks.push({ id: nextId(), type: 'text', turn: event.turn ?? 0, content: event.content });
           }
           return { ...prev, blocks };
         }
@@ -105,13 +58,10 @@ export function useAgenticLoop() {
         case 'tool_start': {
           const idx = blocks.length;
           blocks.push({
-            id: nextId(),
-            type: 'tool',
-            turn: event.turn ?? 0,
-            tool: event.tool,
-            toolArgs: event.args,
-            toolResult: undefined,
-            toolSuccess: undefined,
+            id: nextId(), type: 'tool', turn: event.turn ?? 0,
+            tool: event.tool, toolArgs: event.args,
+            toolResult: undefined, toolSuccess: undefined,
+            toolDescription: event.description,  // v3
           });
           pendingToolsRef.current.set(event.tool_use_id, idx);
           return { ...prev, blocks };
@@ -124,51 +74,56 @@ export function useAgenticLoop() {
               ...blocks[idx],
               toolResult: event.result,
               toolSuccess: event.success,
-              // 从 edit_file 结果中提取 diff
-              toolDiff: extractDiff(event.tool, event.result),
+              toolResultMeta: event.result_meta,  // v3
+              toolDiff: extractDiff(event.tool, event.result, event.result_meta),
             };
             pendingToolsRef.current.delete(event.tool_use_id);
           }
           return { ...prev, blocks };
         }
 
+        case 'file_change': {
+          // v3: 文件变更事件（可选渲染，也可以只在 turn_summary 中展示）
+          blocks.push({
+            id: nextId(), type: 'file_change', turn: event.turn ?? 0,
+            fileAction: event.action, filePath: event.path, fileName: event.filename,
+            linesAdded: event.added, linesRemoved: event.removed,
+          });
+          return { ...prev, blocks };
+        }
+
         case 'turn': {
           blocks.push({
-            id: nextId(),
-            type: 'turn_summary',
-            turn: event.turn ?? 0,
-            display: event.display,
-            summary: event.summary,
+            id: nextId(), type: 'turn_summary', turn: event.turn ?? 0,
+            display: event.display, summary: event.summary,
+            detailItems: event.detail_items,  // v3
           });
           return {
-            ...prev,
-            blocks,
+            ...prev, blocks,
             turns: event.turn ?? prev.turns,
             totalToolCalls: event.total_tool_calls,
           };
         }
 
-        case 'done':
+        case 'progress': {
+          // v3: 进度事件 — 更新计数器但不创建新 block
           return {
             ...prev,
-            status: 'done',
-            turns: event.turns,
-            totalToolCalls: event.total_tool_calls,
-            duration: event.duration,
+            turns: event.turn ?? prev.turns,
+            totalToolCalls: event.total_tool_calls ?? prev.totalToolCalls,
+          };
+        }
+
+        case 'done':
+          return {
+            ...prev, status: 'done' as AgenticStatus,
+            turns: event.turns, totalToolCalls: event.total_tool_calls, duration: event.duration,
           };
 
         case 'error':
-          blocks.push({
-            id: nextId(),
-            type: 'error',
-            turn: event.turn ?? 0,
-            content: event.message,
-          });
+          blocks.push({ id: nextId(), type: 'error', turn: event.turn ?? 0, content: event.message });
           return {
-            ...prev,
-            blocks,
-            status: 'error',
-            error: event.message,
+            ...prev, blocks, status: 'error' as AgenticStatus, error: event.message,
             turns: event.turns ?? prev.turns,
             totalToolCalls: event.total_tool_calls ?? prev.totalToolCalls,
             duration: event.duration ?? prev.duration,
@@ -180,122 +135,100 @@ export function useAgenticLoop() {
     });
   }, []);
 
-  /** 启动 Agentic Loop（POST + SSE） */
-  const runTask = useCallback(
-    async (request: AgenticTaskRequest) => {
-      // 先重置
-      reset();
-      setState((prev) => ({ ...prev, status: 'running' }));
+  const runTask = useCallback(async (request: AgenticTaskRequest) => {
+    reset();
+    setState((prev) => ({ ...prev, status: 'running' as AgenticStatus }));
 
-      const token = localStorage.getItem('chatbot_token');
+    const token = localStorage.getItem('chatbot_token');
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      try {
-        // 用 fetch POST，然后读取 SSE 流
-        const resp = await fetch(`${BASE_URL}/api/v2/agent/agentic-task`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            task: request.task,
-            model: request.model || 'claude-opus-4-6',
-            project_id: request.project_id,
-            max_turns: request.max_turns || 30,
-            system_prompt: request.system_prompt,
-            work_dir: request.work_dir,
-          }),
-        });
+    try {
+      const resp = await fetch(`${BASE_URL}/api/v2/agent/agentic-task`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          task: request.task,
+          model: request.model || 'claude-opus-4-6',
+          project_id: request.project_id,
+          max_turns: request.max_turns || 30,
+          system_prompt: request.system_prompt,
+          work_dir: request.work_dir,
+        }),
+        signal: controller.signal,
+      });
 
-        if (!resp.ok) {
-          const errText = await resp.text();
-          throw new Error(`HTTP ${resp.status}: ${errText}`);
-        }
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`HTTP ${resp.status}: ${errText}`);
+      }
 
-        // 读取 SSE 流
-        const reader = resp.body?.getReader();
-        if (!reader) throw new Error('No response body');
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error('No response body');
 
-        const decoder = new TextDecoder();
-        let buffer = '';
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
 
-          // 解析 SSE 格式: "event: xxx\ndata: {...}\n\n"
-          const parts = buffer.split('\n\n');
-          buffer = parts.pop() || '';
-
-          for (const part of parts) {
-            if (!part.trim()) continue;
-
-            let eventType = 'message';
-            let dataStr = '';
-
-            for (const line of part.split('\n')) {
-              if (line.startsWith('event: ')) {
-                eventType = line.slice(7).trim();
-              } else if (line.startsWith('data: ')) {
-                dataStr = line.slice(6);
-              }
+        for (const part of parts) {
+          if (!part.trim()) continue;
+          let dataStr = '';
+          for (const line of part.split('\n')) {
+            if (line.startsWith('data: ')) {
+              dataStr = line.slice(6);
             }
-
-            if (dataStr) {
-              try {
-                const event: AgenticEvent = JSON.parse(dataStr);
-                handleEvent(event);
-              } catch (e) {
-                console.warn('[AgenticLoop] Failed to parse event:', dataStr, e);
-              }
+          }
+          if (dataStr) {
+            try {
+              const event: AgenticEvent = JSON.parse(dataStr);
+              handleEvent(event);
+            } catch (e) {
+              console.warn('[AgenticLoop] Parse error:', dataStr, e);
             }
           }
         }
-
-        // 流结束后，如果 status 还是 running，标记为 done
-        setState((prev) =>
-          prev.status === 'running' ? { ...prev, status: 'done' } : prev
-        );
-      } catch (err: any) {
-        console.error('[AgenticLoop] Error:', err);
-        setState((prev) => ({
-          ...prev,
-          status: 'error',
-          error: err.message || 'Unknown error',
-        }));
       }
-    },
-    [reset, handleEvent]
-  );
 
-  /** 停止当前任务 */
-  const stop = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+      setState((prev) => prev.status === 'running' ? { ...prev, status: 'done' as AgenticStatus } : prev);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setState((prev) => ({ ...prev, status: prev.status === 'running' ? 'done' as AgenticStatus : prev.status }));
+        return;
+      }
+      console.error('[AgenticLoop] Error:', err);
+      setState((prev) => ({ ...prev, status: 'error' as AgenticStatus, error: err.message || 'Unknown error' }));
     }
-    setState((prev) => ({
-      ...prev,
-      status: prev.status === 'running' ? 'done' : prev.status,
-    }));
+  }, [reset, handleEvent]);
+
+  const stop = useCallback(() => {
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
+    setState((prev) => ({ ...prev, status: prev.status === 'running' ? 'done' as AgenticStatus : prev.status }));
   }, []);
 
-  return {
-    ...state,
-    runTask,
-    stop,
-    reset,
-  };
+  return { ...state, runTask, stop, reset };
 }
 
-/** 从 edit_file 的 tool_result 中提取 diff 信息 */
-function extractDiff(tool: string, result: string): string | undefined {
-  if (tool !== 'edit_file') return undefined;
+/** 从 tool_result 提取 diff 信息 — v3 优先使用 result_meta */
+function extractDiff(tool: string, result: string, meta?: ToolResultMeta): string | undefined {
+  if (tool !== 'edit_file' && tool !== 'multi_edit') return undefined;
+
+  // v3: 优先从 result_meta 取
+  if (meta?.diff) return meta.diff;
+
+  // 降级：从 result JSON 解析
   try {
     const parsed = JSON.parse(result);
-    return parsed.diff; // "file.py +3 -4"
+    return parsed.diff;
   } catch {
     return undefined;
   }

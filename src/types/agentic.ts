@@ -1,137 +1,101 @@
 // src/types/agentic.ts
-// Agentic Loop 前端类型定义
+// Agentic Loop 前端类型定义 — v3 (Claude Code 全功能版)
 
-/** SSE 事件类型 */
 export type AgenticEventType =
-  | 'start'
-  | 'text'
-  | 'tool_start'
-  | 'tool_result'
-  | 'turn'
-  | 'done'
-  | 'error';
+  | 'start' | 'text' | 'tool_start' | 'tool_result'
+  | 'file_change' | 'turn' | 'progress' | 'done' | 'error';
 
-/** 基础事件 */
-export interface AgenticBaseEvent {
-  type: AgenticEventType;
-  turn?: number;
-}
+export interface AgenticBaseEvent { type: AgenticEventType; turn?: number; }
 
-/** 任务开始 */
 export interface AgenticStartEvent extends AgenticBaseEvent {
-  type: 'start';
-  task: string;
-  model: string;
-  work_dir: string;
-  max_turns: number;
-  timestamp: string;
+  type: 'start'; task: string; model: string; work_dir: string; max_turns: number; timestamp: string;
 }
-
-/** AI 文本输出 */
 export interface AgenticTextEvent extends AgenticBaseEvent {
-  type: 'text';
-  content: string;
+  type: 'text'; content: string;
 }
-
-/** 工具开始执行 */
 export interface AgenticToolStartEvent extends AgenticBaseEvent {
-  type: 'tool_start';
-  tool: string;
-  args: Record<string, any>;
-  tool_use_id: string;
+  type: 'tool_start'; tool: string; args: Record<string, any>; tool_use_id: string; description: string;
 }
-
-/** 工具执行结果 */
 export interface AgenticToolResultEvent extends AgenticBaseEvent {
-  type: 'tool_result';
-  tool: string;
-  tool_use_id: string;
-  result: string;
-  success: boolean;
+  type: 'tool_result'; tool: string; tool_use_id: string; result: string;
+  result_meta: ToolResultMeta; success: boolean;
 }
-
-/** Turn 汇总 */
+export interface AgenticFileChangeEvent extends AgenticBaseEvent {
+  type: 'file_change'; action: string; path: string; filename: string; added: number; removed: number;
+}
 export interface AgenticTurnEvent extends AgenticBaseEvent {
-  type: 'turn';
-  tool_calls_this_turn: number;
-  total_tool_calls: number;
-  summary: {
-    commands_run: number;
-    files_viewed: number;
-    files_edited: number;
-    files_created: number;
-    searches: number;
-    pages_fetched: number;
-    display: string;
-  };
-  display: string;
+  type: 'turn'; tool_calls_this_turn: number; total_tool_calls: number;
+  summary: TurnSummary; display: string; detail_items: DetailItem[];
 }
-
-/** 任务完成 */
+export interface AgenticProgressEvent extends AgenticBaseEvent {
+  type: 'progress'; max_turns: number; total_tool_calls: number; elapsed: number;
+}
 export interface AgenticDoneEvent extends AgenticBaseEvent {
-  type: 'done';
-  turns: number;
-  total_tool_calls: number;
-  duration: number;
-  stop_reason: string;
-  work_dir: string;
+  type: 'done'; turns: number; total_tool_calls: number; duration: number;
+  stop_reason: string; work_dir: string;
+  file_changes?: Array<{ action: string; path: string; filename: string; added?: number; removed?: number; lines?: number; }>;
 }
-
-/** 错误 */
 export interface AgenticErrorEvent extends AgenticBaseEvent {
-  type: 'error';
-  message: string;
-  turns?: number;
-  total_tool_calls?: number;
-  duration?: number;
+  type: 'error'; message: string; turns?: number; total_tool_calls?: number; duration?: number;
 }
 
-/** 所有事件联合类型 */
 export type AgenticEvent =
-  | AgenticStartEvent
-  | AgenticTextEvent
-  | AgenticToolStartEvent
-  | AgenticToolResultEvent
-  | AgenticTurnEvent
-  | AgenticDoneEvent
-  | AgenticErrorEvent;
+  | AgenticStartEvent | AgenticTextEvent | AgenticToolStartEvent | AgenticToolResultEvent
+  | AgenticFileChangeEvent | AgenticTurnEvent | AgenticProgressEvent
+  | AgenticDoneEvent | AgenticErrorEvent;
 
-/** 工具名称 → 图标/标签映射 */
+export interface ToolResultMeta {
+  truncated?: boolean; filename?: string; total_lines?: number;
+  truncated_range?: string; hint?: string;
+  files_read?: number; files_errored?: number;
+  diff?: string; added_lines?: number; removed_lines?: number;
+  lines?: number; action?: string;
+  results_count?: number; query?: string;
+  result_titles?: Array<{ title: string; url: string; domain: string; }>;
+  title?: string; url?: string; content_length?: number;
+  matches?: number; pattern?: string;
+  exit_code?: number;
+  completed?: boolean; summary?: string;
+}
+
+export interface TurnSummary {
+  commands_run: number; files_viewed: number; files_edited: number; files_created: number;
+  searches_code: number; searches_web: number; pages_fetched: number; task_completed: boolean;
+  display: string; detail_items: DetailItem[]; tool_count: number;
+}
+
+export interface DetailItem { tool: string; title: string; icon: string; }
+
 export const TOOL_DISPLAY: Record<string, { label: string; icon: string }> = {
-  bash:        { label: 'Command',     icon: '⚡' },
-  read_file:   { label: 'Read file',   icon: '📄' },
-  write_file:  { label: 'Create file', icon: '✏️' },
-  edit_file:   { label: 'Edit file',   icon: '🔧' },
-  list_dir:    { label: 'List dir',    icon: '📁' },
-  grep_search: { label: 'Search code', icon: '🔍' },
-  web_search:  { label: 'Web search',  icon: '🌐' },
-  web_fetch:   { label: 'Fetch page',  icon: '📥' },
+  bash:          { label: 'Command',     icon: '⚡' },
+  read_file:     { label: 'Read file',   icon: '📄' },
+  batch_read:    { label: 'Read files',  icon: '📑' },
+  write_file:    { label: 'Create file', icon: '✏️' },
+  edit_file:     { label: 'Edit file',   icon: '🔧' },
+  multi_edit:    { label: 'Multi edit',  icon: '🔧' },
+  list_dir:      { label: 'List dir',    icon: '📁' },
+  grep_search:   { label: 'Search code', icon: '🔍' },
+  file_search:   { label: 'Find files',  icon: '🔎' },
+  web_search:    { label: 'Web search',  icon: '🌐' },
+  web_fetch:     { label: 'Fetch page',  icon: '📥' },
+  task_complete:  { label: 'Complete',   icon: '✅' },
 };
 
-/** 任务请求体 */
 export interface AgenticTaskRequest {
-  task: string;
-  model?: string;
-  project_id?: string;
-  max_turns?: number;
-  system_prompt?: string;
-  work_dir?: string;
+  task: string; model?: string; project_id?: string;
+  max_turns?: number; system_prompt?: string; work_dir?: string;
 }
 
-/** 前端渲染用的消息块 */
 export interface AgenticBlock {
   id: string;
-  type: 'text' | 'tool' | 'turn_summary' | 'error';
+  type: 'text' | 'tool' | 'turn_summary' | 'file_change' | 'progress' | 'error';
   turn: number;
-  // text 块
   content?: string;
-  // tool 块
-  tool?: string;
-  toolArgs?: Record<string, any>;
-  toolResult?: string;
-  toolSuccess?: boolean;
-  toolDiff?: string;  // "file.py +3 -4"
-  // turn_summary 块
-  display?: string;
-  summary?: AgenticTurnEvent['summary'];
+  tool?: string; toolArgs?: Record<string, any>; toolResult?: string;
+  toolResultMeta?: ToolResultMeta; toolSuccess?: boolean;
+  toolDiff?: string; toolDescription?: string;
+  display?: string; summary?: TurnSummary; detailItems?: DetailItem[];
+  fileAction?: string; filePath?: string; fileName?: string;
+  linesAdded?: number; linesRemoved?: number;
+  maxTurns?: number; elapsed?: number;
 }
