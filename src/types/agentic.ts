@@ -1,9 +1,9 @@
 // src/types/agentic.ts
-// Agentic Loop 前端类型定义 — v3 (Claude Code 全功能版)
+// Agentic Loop 前端类型定义 — v4 (对标 Claude Code)
 
 export type AgenticEventType =
-  | 'start' | 'text' | 'tool_start' | 'tool_result'
-  | 'file_change' | 'turn' | 'progress' | 'done' | 'error';
+  | 'start' | 'text' | 'thinking' | 'tool_start' | 'tool_result'
+  | 'file_change' | 'turn' | 'progress' | 'usage' | 'done' | 'error';
 
 export interface AgenticBaseEvent { type: AgenticEventType; turn?: number; }
 
@@ -12,6 +12,9 @@ export interface AgenticStartEvent extends AgenticBaseEvent {
 }
 export interface AgenticTextEvent extends AgenticBaseEvent {
   type: 'text'; content: string;
+}
+export interface AgenticThinkingEvent extends AgenticBaseEvent {
+  type: 'thinking'; content: string;
 }
 export interface AgenticToolStartEvent extends AgenticBaseEvent {
   type: 'tool_start'; tool: string; args: Record<string, any>; tool_use_id: string; description: string;
@@ -30,25 +33,37 @@ export interface AgenticTurnEvent extends AgenticBaseEvent {
 export interface AgenticProgressEvent extends AgenticBaseEvent {
   type: 'progress'; max_turns: number; total_tool_calls: number; elapsed: number;
 }
+// v4: Token 用量事件
+export interface AgenticUsageEvent extends AgenticBaseEvent {
+  type: 'usage';
+  input_tokens: number; output_tokens: number;
+  total_input_tokens: number; total_output_tokens: number;
+  turn_cost: number; total_cost: number;
+  context_tokens_est: number;
+}
 export interface AgenticDoneEvent extends AgenticBaseEvent {
   type: 'done'; turns: number; total_tool_calls: number; duration: number;
   stop_reason: string; work_dir: string;
-  file_changes?: Array<{ action: string; path: string; filename: string; added?: number; removed?: number; lines?: number; }>;
+  file_changes?: Array<{ action: string; path: string; filename: string; added?: number; removed?: number; }>;
+  total_input_tokens?: number; total_output_tokens?: number; total_cost?: number;
 }
 export interface AgenticErrorEvent extends AgenticBaseEvent {
   type: 'error'; message: string; turns?: number; total_tool_calls?: number; duration?: number;
+  total_input_tokens?: number; total_output_tokens?: number; total_cost?: number;
 }
 
 export type AgenticEvent =
-  | AgenticStartEvent | AgenticTextEvent | AgenticToolStartEvent | AgenticToolResultEvent
+  | AgenticStartEvent | AgenticTextEvent | AgenticThinkingEvent
+  | AgenticToolStartEvent | AgenticToolResultEvent
   | AgenticFileChangeEvent | AgenticTurnEvent | AgenticProgressEvent
-  | AgenticDoneEvent | AgenticErrorEvent;
+  | AgenticUsageEvent | AgenticDoneEvent | AgenticErrorEvent;
 
 export interface ToolResultMeta {
   truncated?: boolean; filename?: string; total_lines?: number;
   truncated_range?: string; hint?: string;
   files_read?: number; files_errored?: number;
-  diff?: string; added_lines?: number; removed_lines?: number;
+  diff?: string; unified_diff?: string; // v4: unified diff
+  added_lines?: number; removed_lines?: number;
   lines?: number; action?: string;
   results_count?: number; query?: string;
   result_titles?: Array<{ title: string; url: string; domain: string; }>;
@@ -88,14 +103,23 @@ export interface AgenticTaskRequest {
 
 export interface AgenticBlock {
   id: string;
-  type: 'text' | 'tool' | 'turn_summary' | 'file_change' | 'progress' | 'error';
+  type: 'text' | 'thinking' | 'tool' | 'turn_summary' | 'file_change' | 'progress' | 'usage' | 'error';
   turn: number;
   content?: string;
+  // tool fields
   tool?: string; toolArgs?: Record<string, any>; toolResult?: string;
   toolResultMeta?: ToolResultMeta; toolSuccess?: boolean;
   toolDiff?: string; toolDescription?: string;
+  // turn_summary fields
   display?: string; summary?: TurnSummary; detailItems?: DetailItem[];
+  // file_change fields
   fileAction?: string; filePath?: string; fileName?: string;
   linesAdded?: number; linesRemoved?: number;
+  // progress fields
   maxTurns?: number; elapsed?: number;
+  // v4: usage fields
+  inputTokens?: number; outputTokens?: number;
+  totalInputTokens?: number; totalOutputTokens?: number;
+  turnCost?: number; totalCost?: number;
+  contextTokensEst?: number;
 }

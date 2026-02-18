@@ -1,5 +1,5 @@
 // src/hooks/useAgenticLoop.ts
-// Agentic Loop SSE Hook — v3 (supports all Claude Code event types)
+// Agentic Loop SSE Hook — v4 (supports usage, thinking, cost tracking)
 
 import { useState, useCallback, useRef } from 'react';
 import { AgenticEvent, AgenticBlock, AgenticTaskRequest, ToolResultMeta } from '@/types/agentic';
@@ -15,6 +15,11 @@ interface AgenticLoopState {
   duration: number;
   model: string;
   workDir: string;
+  // v4: token usage & cost
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCost: number;
+  contextTokensEst: number;
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://baloonet.tech:17432';
@@ -23,6 +28,7 @@ export function useAgenticLoop() {
   const [state, setState] = useState<AgenticLoopState>({
     blocks: [], status: 'idle', error: null,
     turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '',
+    totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, contextTokensEst: 0,
   });
 
   const abortRef = useRef<AbortController | null>(null);
@@ -34,7 +40,11 @@ export function useAgenticLoop() {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     pendingToolsRef.current.clear();
     blockIdCounter.current = 0;
-    setState({ blocks: [], status: 'idle', error: null, turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '' });
+    setState({
+      blocks: [], status: 'idle', error: null,
+      turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '',
+      totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, contextTokensEst: 0,
+    });
   }, []);
 
   const handleEvent = useCallback((event: AgenticEvent) => {
@@ -55,13 +65,24 @@ export function useAgenticLoop() {
           return { ...prev, blocks };
         }
 
+        // v4: 思考块
+        case 'thinking': {
+          const last = blocks[blocks.length - 1];
+          if (last && last.type === 'thinking' && last.turn === (event.turn ?? 0)) {
+            last.content = (last.content || '') + event.content;
+          } else {
+            blocks.push({ id: nextId(), type: 'thinking', turn: event.turn ?? 0, content: event.content });
+          }
+          return { ...prev, blocks };
+        }
+
         case 'tool_start': {
           const idx = blocks.length;
           blocks.push({
             id: nextId(), type: 'tool', turn: event.turn ?? 0,
             tool: event.tool, toolArgs: event.args,
             toolResult: undefined, toolSuccess: undefined,
-            toolDescription: event.description,  // v3
+            toolDescription: event.description,
           });
           pendingToolsRef.current.set(event.tool_use_id, idx);
           return { ...prev, blocks };
@@ -74,7 +95,7 @@ export function useAgenticLoop() {
               ...blocks[idx],
               toolResult: event.result,
               toolSuccess: event.success,
-              toolResultMeta: event.result_meta,  // v3
+              toolResultMeta: event.result_meta,
               toolDiff: extractDiff(event.tool, event.result, event.result_meta),
             };
             pendingToolsRef.current.delete(event.tool_use_id);
@@ -83,7 +104,6 @@ export function useAgenticLoop() {
         }
 
         case 'file_change': {
-          // v3: 文件变更事件（可选渲染，也可以只在 turn_summary 中展示）
           blocks.push({
             id: nextId(), type: 'file_change', turn: event.turn ?? 0,
             fileAction: event.action, filePath: event.path, fileName: event.filename,
@@ -96,7 +116,7 @@ export function useAgenticLoop() {
           blocks.push({
             id: nextId(), type: 'turn_summary', turn: event.turn ?? 0,
             display: event.display, summary: event.summary,
-            detailItems: event.detail_items,  // v3
+            detailItems: event.detail_items,
           });
           return {
             ...prev, blocks,
@@ -106,7 +126,6 @@ export function useAgenticLoop() {
         }
 
         case 'progress': {
-          // v3: 进度事件 — 更新计数器但不创建新 block
           return {
             ...prev,
             turns: event.turn ?? prev.turns,
@@ -114,10 +133,26 @@ export function useAgenticLoop() {
           };
         }
 
+        // v4: Token 用量事件
+        case 'usage': {
+          // 可选: 也作为 block 渲染 (小型 token 计数器)
+          // blocks.push({ id: nextId(), type: 'usage', turn: event.turn ?? 0, ... });
+          return {
+            ...prev,
+            totalInputTokens: event.total_input_tokens,
+            totalOutputTokens: event.total_output_tokens,
+            totalCost: event.total_cost,
+            contextTokensEst: event.context_tokens_est,
+          };
+        }
+
         case 'done':
           return {
             ...prev, status: 'done' as AgenticStatus,
             turns: event.turns, totalToolCalls: event.total_tool_calls, duration: event.duration,
+            totalInputTokens: event.total_input_tokens ?? prev.totalInputTokens,
+            totalOutputTokens: event.total_output_tokens ?? prev.totalOutputTokens,
+            totalCost: event.total_cost ?? prev.totalCost,
           };
 
         case 'error':
@@ -127,6 +162,9 @@ export function useAgenticLoop() {
             turns: event.turns ?? prev.turns,
             totalToolCalls: event.total_tool_calls ?? prev.totalToolCalls,
             duration: event.duration ?? prev.duration,
+            totalInputTokens: event.total_input_tokens ?? prev.totalInputTokens,
+            totalOutputTokens: event.total_output_tokens ?? prev.totalOutputTokens,
+            totalCost: event.total_cost ?? prev.totalCost,
           };
 
         default:
@@ -193,7 +231,7 @@ export function useAgenticLoop() {
               const event: AgenticEvent = JSON.parse(dataStr);
               handleEvent(event);
             } catch (e) {
-              console.warn('[AgenticLoop] Parse error:', dataStr, e);
+              console.warn('[AgenticLoop v4] Parse error:', dataStr, e);
             }
           }
         }
@@ -205,7 +243,7 @@ export function useAgenticLoop() {
         setState((prev) => ({ ...prev, status: prev.status === 'running' ? 'done' as AgenticStatus : prev.status }));
         return;
       }
-      console.error('[AgenticLoop] Error:', err);
+      console.error('[AgenticLoop v4] Error:', err);
       setState((prev) => ({ ...prev, status: 'error' as AgenticStatus, error: err.message || 'Unknown error' }));
     }
   }, [reset, handleEvent]);
@@ -218,18 +256,9 @@ export function useAgenticLoop() {
   return { ...state, runTask, stop, reset };
 }
 
-/** 从 tool_result 提取 diff 信息 — v3 优先使用 result_meta */
+/** 从 tool_result 提取 diff 信息 */
 function extractDiff(tool: string, result: string, meta?: ToolResultMeta): string | undefined {
   if (tool !== 'edit_file' && tool !== 'multi_edit') return undefined;
-
-  // v3: 优先从 result_meta 取
   if (meta?.diff) return meta.diff;
-
-  // 降级：从 result JSON 解析
-  try {
-    const parsed = JSON.parse(result);
-    return parsed.diff;
-  } catch {
-    return undefined;
-  }
+  try { return JSON.parse(result).diff; } catch { return undefined; }
 }
