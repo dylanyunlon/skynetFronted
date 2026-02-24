@@ -11,7 +11,7 @@ export function useChat() {
 
   const sendMessage = useCallback(async (
     content: string,
-    model: string = 'claude-opus-4-5-20251101',
+    model: string = 'claude-opus-4-6',
     options?: {
       extractCode?: boolean
       autoExecute?: boolean
@@ -125,7 +125,7 @@ export function useChat() {
 
   const sendStreamingMessage = useCallback(async (
     content: string,
-    model: string = 'claude-opus-4-5-20251101',
+    model: string = 'claude-opus-4-6',
     options?: {
       extractCode?: boolean
       autoExecute?: boolean

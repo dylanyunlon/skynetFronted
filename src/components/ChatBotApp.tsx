@@ -164,7 +164,7 @@ const ChatBotApp: React.FC = () => {
     'Doubao-1.5-pro-256k',
     'o3-gz',
     'GPT-4',
-    'claude-opus-4-5-20251101'
+    'claude-opus-4-6'
   ];
 
   useEffect(() => {

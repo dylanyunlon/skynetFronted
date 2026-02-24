@@ -15,7 +15,7 @@ interface HeaderProps {
 const models = [
   'Doubao-1.5-pro-256k',
   'GPT-4-Turbo',
-  'claude-opus-4-5-20251101',
+  'claude-opus-4-6',
   'Gemini-Pro',
   'Llama-3-70B',
 ];

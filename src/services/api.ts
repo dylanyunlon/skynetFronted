@@ -811,7 +811,7 @@ export class ChatBotAPIService {
     try {
       const response = await this.api.post('/api/v2/agent/create-project', {
         prompt: request.prompt,
-        model: request.model || 'claude-opus-4-5-20251101',
+        model: request.model || 'claude-opus-4-6',
         auto_execute: request.auto_execute ?? true,
         max_debug_attempts: request.max_debug_attempts ?? 3,
         project_type: request.project_type
@@ -976,7 +976,7 @@ export class ChatBotAPIService {
     try {
       const requestBody = {
         message: params.content,
-        model: params.model || 'claude-opus-4-5-20251101',
+        model: params.model || 'claude-opus-4-6',
         conversation_id: params.conversation_id,
         enable_vibe_mode: params.enable_vibe_mode ?? true,
         include_project_context: true

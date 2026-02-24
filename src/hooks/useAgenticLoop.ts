@@ -1,5 +1,5 @@
 // src/hooks/useAgenticLoop.ts
-// Agentic Loop SSE Hook — v4 (supports usage, thinking, cost tracking)
+// Agentic Loop SSE Hook — v10 (全 v9 事件支持 + Claude Code 风格)
 
 import { useState, useCallback, useRef } from 'react';
 import { AgenticEvent, AgenticBlock, AgenticTaskRequest, ToolResultMeta } from '@/types/agentic';
@@ -15,11 +15,12 @@ interface AgenticLoopState {
   duration: number;
   model: string;
   workDir: string;
-  // v4: token usage & cost
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCost: number;
   contextTokensEst: number;
+  // v10: elapsed timer
+  elapsed: number;
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://baloonet.tech:17432';
@@ -29,6 +30,7 @@ export function useAgenticLoop() {
     blocks: [], status: 'idle', error: null,
     turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '',
     totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, contextTokensEst: 0,
+    elapsed: 0,
   });
 
   const abortRef = useRef<AbortController | null>(null);
@@ -44,6 +46,7 @@ export function useAgenticLoop() {
       blocks: [], status: 'idle', error: null,
       turns: 0, totalToolCalls: 0, duration: 0, model: '', workDir: '',
       totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, contextTokensEst: 0,
+      elapsed: 0,
     });
   }, []);
 
@@ -65,7 +68,6 @@ export function useAgenticLoop() {
           return { ...prev, blocks };
         }
 
-        // v4: 思考块
         case 'thinking': {
           const last = blocks[blocks.length - 1];
           if (last && last.type === 'thinking' && last.turn === (event.turn ?? 0)) {
@@ -97,6 +99,7 @@ export function useAgenticLoop() {
               toolSuccess: event.success,
               toolResultMeta: event.result_meta,
               toolDiff: extractDiff(event.tool, event.result, event.result_meta),
+              toolDurationMs: event.duration_ms,
             };
             pendingToolsRef.current.delete(event.tool_use_id);
           }
@@ -130,13 +133,11 @@ export function useAgenticLoop() {
             ...prev,
             turns: event.turn ?? prev.turns,
             totalToolCalls: event.total_tool_calls ?? prev.totalToolCalls,
+            elapsed: event.elapsed ?? prev.elapsed,
           };
         }
 
-        // v4: Token 用量事件
         case 'usage': {
-          // 可选: 也作为 block 渲染 (小型 token 计数器)
-          // blocks.push({ id: nextId(), type: 'usage', turn: event.turn ?? 0, ... });
           return {
             ...prev,
             totalInputTokens: event.total_input_tokens,
@@ -144,6 +145,133 @@ export function useAgenticLoop() {
             totalCost: event.total_cost,
             contextTokensEst: event.context_tokens_est,
           };
+        }
+
+        // v10: todo_update
+        case 'todo_update': {
+          blocks.push({
+            id: nextId(), type: 'todo_update', turn: event.turn ?? 0,
+            todoStatus: event.todo_status,
+          });
+          return { ...prev, blocks };
+        }
+
+        // v10: subagent_start
+        case 'subagent_start': {
+          blocks.push({
+            id: nextId(), type: 'subagent', turn: event.turn ?? 0,
+            subagentType: event.subagent_type,
+            content: event.prompt,
+            toolDescription: `SubAgent (${event.subagent_type})`,
+          });
+          return { ...prev, blocks };
+        }
+
+        // v10: subagent_result
+        case 'subagent_result': {
+          // Find matching subagent block and update
+          for (let i = blocks.length - 1; i >= 0; i--) {
+            if (blocks[i].type === 'subagent' && !blocks[i].toolResult) {
+              blocks[i] = {
+                ...blocks[i],
+                toolResult: event.result,
+                toolResultMeta: event.result_meta,
+                toolSuccess: event.result_meta?.success,
+              };
+              break;
+            }
+          }
+          return { ...prev, blocks };
+        }
+
+        // v10: debug events
+        case 'debug_start': {
+          blocks.push({
+            id: nextId(), type: 'debug_start', turn: event.turn ?? 0,
+            debugCommand: event.command,
+            debugAttempt: event.attempt,
+            debugMaxRetries: event.max_retries,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'debug_result': {
+          blocks.push({
+            id: nextId(), type: 'debug_result', turn: event.turn ?? 0,
+            debugPassed: event.passed,
+            debugAttempt: event.attempt,
+            debugExitCode: event.exit_code,
+            debugDiagnosis: event.diagnosis,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'test_result': {
+          blocks.push({
+            id: nextId(), type: 'test_result', turn: event.turn ?? 0,
+            testPassed: event.passed,
+            testTotal: event.total_tests,
+            testPassedCount: event.passed_tests,
+            testFailedCount: event.failed_tests,
+            testDurationS: event.duration_s,
+            debugCommand: event.command,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'revert': {
+          blocks.push({
+            id: nextId(), type: 'revert', turn: event.turn ?? 0,
+            revertPath: event.path,
+            revertEditId: event.edit_id,
+            revertDescription: event.description,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'diff_summary': {
+          blocks.push({
+            id: nextId(), type: 'diff_summary', turn: event.turn ?? 0,
+            diffFilesChanged: event.files_changed,
+            diffTotalAdded: event.total_added,
+            diffTotalRemoved: event.total_removed,
+            diffFileDetails: event.file_details,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'approval_wait': {
+          blocks.push({
+            id: nextId(), type: 'approval_wait', turn: event.turn ?? 0,
+            approvalCommand: event.command,
+            approvalRiskLevel: event.risk_level,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'chunk_schedule': {
+          blocks.push({
+            id: nextId(), type: 'chunk_schedule', turn: event.turn ?? 0,
+            chunkTotalCalls: event.total_calls,
+            chunkCount: event.chunks,
+            chunkParallelCalls: event.parallel_calls,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'context_compact': {
+          blocks.push({
+            id: nextId(), type: 'context_compact', turn: event.turn ?? 0,
+            compactBeforeTokens: event.before_tokens,
+            compactAfterTokens: event.after_tokens,
+            compactBeforeMessages: event.before_messages,
+            compactAfterMessages: event.after_messages,
+          });
+          return { ...prev, blocks };
+        }
+
+        case 'heartbeat': {
+          return { ...prev, elapsed: event.elapsed ?? prev.elapsed };
         }
 
         case 'done':
@@ -220,10 +348,13 @@ export function useAgenticLoop() {
 
         for (const part of parts) {
           if (!part.trim()) continue;
+          // Support multi-line data and event: type lines
           let dataStr = '';
           for (const line of part.split('\n')) {
             if (line.startsWith('data: ')) {
-              dataStr = line.slice(6);
+              dataStr += line.slice(6);
+            } else if (line.startsWith('data:')) {
+              dataStr += line.slice(5);
             }
           }
           if (dataStr) {
@@ -231,7 +362,7 @@ export function useAgenticLoop() {
               const event: AgenticEvent = JSON.parse(dataStr);
               handleEvent(event);
             } catch (e) {
-              console.warn('[AgenticLoop v4] Parse error:', dataStr, e);
+              console.warn('[AgenticLoop v10] Parse error:', dataStr, e);
             }
           }
         }
@@ -243,7 +374,7 @@ export function useAgenticLoop() {
         setState((prev) => ({ ...prev, status: prev.status === 'running' ? 'done' as AgenticStatus : prev.status }));
         return;
       }
-      console.error('[AgenticLoop v4] Error:', err);
+      console.error('[AgenticLoop v10] Error:', err);
       setState((prev) => ({ ...prev, status: 'error' as AgenticStatus, error: err.message || 'Unknown error' }));
     }
   }, [reset, handleEvent]);
@@ -256,9 +387,10 @@ export function useAgenticLoop() {
   return { ...state, runTask, stop, reset };
 }
 
-/** 从 tool_result 提取 diff 信息 */
 function extractDiff(tool: string, result: string, meta?: ToolResultMeta): string | undefined {
-  if (tool !== 'edit_file' && tool !== 'multi_edit') return undefined;
+  if (!['edit_file', 'multi_edit', 'revert_edit', 'revert_to_checkpoint'].includes(tool)) return undefined;
+  if (meta?.unified_diff) return meta.unified_diff;
   if (meta?.diff) return meta.diff;
-  try { return JSON.parse(result).diff; } catch { return undefined; }
+  if (meta?.diff_display) return meta.diff_display;
+  try { const d = JSON.parse(result); return d.unified_diff || d.diff || d.diff_display; } catch { return undefined; }
 }

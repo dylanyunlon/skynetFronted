@@ -569,10 +569,10 @@ const ConfigPanel: React.FC<{
           onChange={(e) => onConfigChange({ ...config, model: e.target.value })}
           className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="claude-opus-4-5-20251101">Claude Sonnet 4</option>
-          <option value="claude-opus-4-5-20251101">Claude Opus 4</option>
-          <option value="claude-opus-4-5-20251101">GPT-4o</option>
-          <option value="claude-opus-4-5-20251101">DeepSeek V3</option>
+          <option value="claude-opus-4-6">Claude Sonnet 4</option>
+          <option value="claude-opus-4-6">Claude Opus 4</option>
+          <option value="claude-opus-4-6">GPT-4o</option>
+          <option value="claude-opus-4-6">DeepSeek V3</option>
 
 
         </select>

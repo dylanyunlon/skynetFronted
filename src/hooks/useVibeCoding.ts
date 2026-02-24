@@ -233,3 +233,203 @@ function extractDiff(tool: string, result: string, meta?: ToolResultMeta): strin
     return undefined;
   }
 }
+
+// ============================================================
+// Vibe Coding Hooks (兼容旧版 UnifiedChatInterface)
+// ============================================================
+
+import type {
+  VibeCodingStage,
+  VibeCodingSession,
+  ProcessingStep,
+} from '@/types';
+import { api, detectVibeCodingIntent } from '@/services/api';
+
+interface VibeCodingState {
+  stage: VibeCodingStage;
+  loading: boolean;
+  error: string | null;
+  session: VibeCodingSession | null;
+  currentProject: any | null;
+}
+
+/**
+ * useVibeCoding — 管理 Vibe Coding 的 meta/generate 两阶段流程
+ */
+export function useVibeCoding() {
+  const [state, setState] = useState<VibeCodingState>({
+    stage: 'idle',
+    loading: false,
+    error: null,
+    session: null,
+    currentProject: null,
+  });
+
+  const reset = useCallback(() => {
+    setState({
+      stage: 'idle',
+      loading: false,
+      error: null,
+      session: null,
+      currentProject: null,
+    });
+  }, []);
+
+  const startVibeCoding = useCallback(async (userInput: string, conversationId?: string) => {
+    const convId = conversationId || `vibe_${Date.now()}`;
+    setState(prev => ({ ...prev, stage: 'meta_processing', loading: true, error: null }));
+    try {
+      const result = await api.sendVibeCodingMeta({
+        content: userInput,
+        conversation_id: convId,
+      });
+
+      const session: VibeCodingSession = {
+        id: (result as any).session_id || `vs_${Date.now()}`,
+        stage: 'meta_complete',
+        original_input: userInput,
+        conversation_id: convId,
+        meta_response: result as any,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      setState(prev => ({
+        ...prev,
+        stage: 'meta_complete',
+        loading: false,
+        session,
+      }));
+    } catch (err: any) {
+      setState(prev => ({
+        ...prev,
+        stage: 'error',
+        loading: false,
+        error: err.message || 'Meta 阶段失败',
+      }));
+    }
+  }, []);
+
+  const confirmGenerate = useCallback(async (confirmMessage?: string) => {
+    setState(prev => {
+      const session = prev.session;
+      if (!session) return { ...prev, stage: 'error' as VibeCodingStage, error: 'No active session' };
+      return { ...prev, stage: 'generate_processing' as VibeCodingStage, loading: true, error: null };
+    });
+    try {
+      const session = state.session;
+      if (!session) throw new Error('No active session');
+
+      const metaData = session.meta_response as any;
+      const result = await api.sendVibeCodingGenerate({
+        content: confirmMessage || '确认生成',
+        conversation_id: session.conversation_id,
+        meta_result: metaData?.vibe_data?.meta_result || metaData,
+        optimized_prompt: metaData?.vibe_data?.optimized_description || session.original_input,
+        original_user_input: session.original_input,
+      });
+
+      setState(prev => ({
+        ...prev,
+        stage: 'generate_complete',
+        loading: false,
+        session: { ...prev.session!, generate_response: result as any, stage: 'generate_complete', updated_at: new Date() },
+        currentProject: (result as any)?.project_created || null,
+      }));
+    } catch (err: any) {
+      setState(prev => ({
+        ...prev,
+        stage: 'error',
+        loading: false,
+        error: err.message || 'Generate 阶段失败',
+      }));
+    }
+  }, [state.session]);
+
+  const modifyRequirement = useCallback(async (modificationRequest: string) => {
+    setState(prev => ({ ...prev, stage: 'meta_processing', loading: true, error: null }));
+    try {
+      const session = state.session;
+      if (!session) throw new Error('No active session');
+
+      const metaData = session.meta_response as any;
+      const result = await api.modifyVibeCodingRequirement({
+        content: modificationRequest,
+        conversation_id: session.conversation_id,
+        previous_meta_result: metaData?.vibe_data?.meta_result || metaData,
+      });
+
+      setState(prev => ({
+        ...prev,
+        stage: 'meta_complete',
+        loading: false,
+        session: { ...prev.session!, meta_response: result as any, updated_at: new Date() },
+      }));
+    } catch (err: any) {
+      setState(prev => ({
+        ...prev,
+        stage: 'error',
+        loading: false,
+        error: err.message || '修改需求失败',
+      }));
+    }
+  }, [state.session]);
+
+  return {
+    ...state,
+    startVibeCoding,
+    confirmGenerate,
+    modifyRequirement,
+    reset,
+  };
+}
+
+/**
+ * useVibeCodingSteps — 根据当前 stage 返回处理步骤列表
+ */
+export function useVibeCodingSteps(stage: VibeCodingStage): ProcessingStep[] {
+  const steps: ProcessingStep[] = [
+    {
+      id: 'intent',
+      label: '意图识别',
+      status: stage === 'idle' ? 'pending' : 'completed',
+    },
+    {
+      id: 'meta',
+      label: '需求分析 & 优化',
+      status: stage === 'meta_processing' ? 'processing'
+            : stage === 'idle' ? 'pending'
+            : 'completed',
+    },
+    {
+      id: 'confirm',
+      label: '确认方案',
+      status: stage === 'meta_complete' ? 'processing'
+            : ['generate_processing', 'generate_complete'].includes(stage) ? 'completed'
+            : 'pending',
+    },
+    {
+      id: 'generate',
+      label: '生成项目',
+      status: stage === 'generate_processing' ? 'processing'
+            : stage === 'generate_complete' ? 'completed'
+            : 'pending',
+    },
+  ];
+
+  if (stage === 'error') {
+    const last = steps.find(s => s.status === 'processing') || steps[steps.length - 1];
+    if (last) last.status = 'error';
+  }
+
+  return steps;
+}
+
+/**
+ * useVibeCodingIntentDetection — 返回本地意图检测函数
+ */
+export function useVibeCodingIntentDetection(): (text: string) => boolean {
+  return useCallback((text: string) => {
+    return detectVibeCodingIntent(text);
+  }, []);
+}
