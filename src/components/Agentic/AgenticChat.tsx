@@ -1,5 +1,5 @@
 // src/components/Agentic/AgenticChat.tsx
-// Agentic Loop v10 主界面 — Claude Code 风格 UI (全事件渲染)
+// Agentic Loop v11 主界面 — Claude Code 风格 UI (全事件渲染 + Workspace集成)
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -7,10 +7,19 @@ import {
   FolderOpen, Search, FileSearch, Globe, Download, ChevronDown,
   ChevronRight, CheckCircle, XCircle, Clock, Zap, PenTool, FileEdit,
   Eye, RotateCcw, Bug, ListTodo, Brain, GitBranch, Code, AlertTriangle,
-  Layers, Minimize2, Activity
+  Layers, Minimize2, Activity, Sparkles
 } from 'lucide-react';
 import { useAgenticLoop } from '@/hooks/useAgenticLoop';
 import { AgenticBlock, TOOL_DISPLAY, DetailItem, ToolResultMeta } from '@/types/agentic';
+
+// ============================================================
+// Props
+// ============================================================
+interface AgenticChatProps {
+  defaultModel?: string;
+  defaultMaxTurns?: number;
+  defaultWorkDir?: string;
+}
 
 // ============================================================
 // 工具图标映射
@@ -119,7 +128,6 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   const isLoading = block.toolResult === undefined;
   const description = block.toolDescription || toolInfo.label;
 
-  // Determine if this is a file edit with diff info
   const hasDiff = block.toolDiff || block.toolResultMeta?.added_lines || block.toolResultMeta?.removed_lines;
   const editStats = hasDiff ? (
     <span className="ml-2 text-xs">
@@ -131,7 +139,7 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 
   return (
     <div className="border border-gray-700/50 rounded-lg overflow-hidden bg-gray-800/30 my-1">
-      {/* Header — clickable */}
+      {/* Header */}
       <div
         className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-700/30 transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -153,7 +161,6 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
       {/* Expanded content */}
       {expanded && (
         <div className="border-t border-gray-700/30 px-3 py-2 text-xs font-mono max-h-64 overflow-y-auto bg-gray-900/40">
-          {/* Tool arguments */}
           {block.toolArgs && (
             <div className="mb-2">
               {tool === 'bash' && block.toolArgs.command && (
@@ -173,7 +180,6 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
               )}
             </div>
           )}
-          {/* Diff display */}
           {block.toolDiff && (
             <pre className="whitespace-pre-wrap text-[11px] leading-relaxed">
               {block.toolDiff.split('\n').map((line, i) => (
@@ -185,22 +191,18 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
               ))}
             </pre>
           )}
-          {/* Web search results */}
           {tool === 'web_search' && block.toolResultMeta && (
             <WebSearchResults meta={block.toolResultMeta} />
           )}
-          {/* Batch commands results */}
           {tool === 'batch_commands' && block.toolResultMeta && (
             <BatchCommandsResults meta={block.toolResultMeta} />
           )}
-          {/* Tool result text */}
           {block.toolResult && !block.toolDiff && tool !== 'web_search' && tool !== 'batch_commands' && (
             <pre className="text-gray-400 whitespace-pre-wrap break-words">
               {block.toolResult.substring(0, 2000)}
               {(block.toolResult.length > 2000) && '\n...[truncated]'}
             </pre>
           )}
-          {/* Truncated hint */}
           {block.toolResultMeta?.hint && (
             <div className="mt-1 text-blue-400 text-[10px] italic">{block.toolResultMeta.hint}</div>
           )}
@@ -211,7 +213,7 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
-// Turn Summary 块 (Claude Code 核心: "Ran 7 commands, edited a file")
+// Turn Summary 块
 // ============================================================
 const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   const [expanded, setExpanded] = useState(false);
@@ -243,7 +245,7 @@ const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
-// v10: Debug/Test blocks
+// Debug/Test blocks
 // ============================================================
 const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   if (block.type === 'debug_start') {
@@ -294,7 +296,7 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
-// v10: Diff Summary, Revert, Approval, Chunk, Context Compact
+// Info blocks: diff_summary, revert, approval, chunk, context
 // ============================================================
 const InfoBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   if (block.type === 'diff_summary' && (block.diffFilesChanged ?? 0) > 0) {
@@ -354,9 +356,41 @@ const InfoBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
+// 空状态引导 (首次进入)
+// ============================================================
+const EmptyState: React.FC = () => (
+  <div className="flex flex-col items-center justify-center h-full text-center px-6">
+    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center mb-4 border border-cyan-500/20">
+      <Terminal className="w-8 h-8 text-cyan-400" />
+    </div>
+    <h2 className="text-lg font-semibold text-gray-200 mb-2">Agentic Loop</h2>
+    <p className="text-sm text-gray-500 max-w-md mb-6">
+      描述你的任务,AI 将自主调用工具循环执行,直到完成。支持文件操作、命令执行、Web 搜索、调试回滚等全套能力。
+    </p>
+    <div className="grid grid-cols-2 gap-3 text-xs text-gray-400 max-w-sm">
+      {[
+        { icon: <Terminal className="w-3.5 h-3.5 text-yellow-400" />, text: '执行命令和脚本' },
+        { icon: <FileText className="w-3.5 h-3.5 text-blue-400" />, text: '读写编辑文件' },
+        { icon: <Globe className="w-3.5 h-3.5 text-cyan-400" />, text: '搜索互联网' },
+        { icon: <Bug className="w-3.5 h-3.5 text-orange-400" />, text: '自动调试修复' },
+      ].map((item, i) => (
+        <div key={i} className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-3 py-2 border border-gray-700/30">
+          {item.icon}
+          <span>{item.text}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================================
 // 主组件
 // ============================================================
-export const AgenticChat: React.FC = () => {
+export const AgenticChat: React.FC<AgenticChatProps> = ({
+  defaultModel = 'claude-opus-4-6',
+  defaultMaxTurns = 30,
+  defaultWorkDir = '',
+}) => {
   const { blocks, status, error, turns, totalToolCalls, duration, model, workDir,
           totalInputTokens, totalOutputTokens, totalCost, contextTokensEst,
           elapsed, runTask, stop, reset } = useAgenticLoop();
@@ -371,16 +405,36 @@ export const AgenticChat: React.FC = () => {
     }
   }, [blocks]);
 
+  // Auto-focus input
+  useEffect(() => {
+    if (status !== 'running' && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [status]);
+
   const handleSubmit = () => {
     const task = input.trim();
     if (!task || status === 'running') return;
     setInput('');
-    runTask({ task, model: 'claude-opus-4-6', max_turns: 30 });
+    runTask({
+      task,
+      model: defaultModel,
+      max_turns: defaultMaxTurns,
+      work_dir: defaultWorkDir || undefined,
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   };
+
+  const handleNewTask = () => {
+    reset();
+    setInput('');
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const isIdle = status === 'idle' && blocks.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-gray-900 text-gray-100">
@@ -392,100 +446,119 @@ export const AgenticChat: React.FC = () => {
             status === 'done' ? 'bg-blue-400' :
             status === 'error' ? 'bg-red-400' : 'bg-gray-500'
           }`} />
-          <span className="text-gray-400">{model || 'Ready'}</span>
+          <span className="text-gray-400">{model || defaultModel}</span>
           {status === 'running' && <span className="text-gray-500">Turn {turns}</span>}
+          {status === 'running' && elapsed > 0 && (
+            <span className="text-gray-600">{elapsed.toFixed(0)}s</span>
+          )}
         </div>
         <div className="flex items-center gap-4 text-gray-500">
           {totalToolCalls > 0 && <span>{totalToolCalls} tools</span>}
           {totalCost > 0 && <span>${totalCost.toFixed(4)}</span>}
           {contextTokensEst > 0 && <span>{(contextTokensEst / 1000).toFixed(0)}K ctx</span>}
           {duration > 0 && <span>{duration.toFixed(1)}s</span>}
+          {(status === 'done' || status === 'error') && blocks.length > 0 && (
+            <button
+              onClick={handleNewTask}
+              className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
+              title="新任务"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>New</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
-        {blocks.map((block) => {
-          switch (block.type) {
-            case 'text':
-              return (
-                <div key={block.id} className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed py-1">
-                  {block.content}
-                </div>
-              );
-            case 'thinking':
-              return (
-                <div key={block.id} className="text-xs text-gray-500 italic border-l-2 border-gray-700 pl-3 py-1 my-1">
-                  {block.content}
-                </div>
-              );
-            case 'tool':
-              return <ToolBlock key={block.id} block={block} />;
-            case 'turn_summary':
-              return <TurnSummaryBlock key={block.id} block={block} />;
-            case 'file_change':
-              return (
-                <div key={block.id} className="flex items-center gap-2 text-xs text-gray-400 py-0.5 px-3">
-                  <FileEdit className="w-3 h-3" />
-                  <span className={block.fileAction === 'created' ? 'text-green-400' : 'text-orange-400'}>
-                    {block.fileAction}
-                  </span>
-                  <span className="text-gray-300 font-mono">{block.fileName}</span>
-                  {(block.linesAdded ?? 0) > 0 && <span className="text-green-400">+{block.linesAdded}</span>}
-                  {(block.linesRemoved ?? 0) > 0 && <span className="text-red-400">-{block.linesRemoved}</span>}
-                </div>
-              );
-            case 'error':
-              return (
-                <div key={block.id} className="bg-red-900/20 border border-red-800/30 rounded-lg px-4 py-3 my-2 text-sm text-red-300">
-                  {block.content}
-                </div>
-              );
-            case 'debug_start':
-            case 'debug_result':
-            case 'test_result':
-              return <DebugBlock key={block.id} block={block} />;
-            case 'diff_summary':
-            case 'revert':
-            case 'approval_wait':
-            case 'chunk_schedule':
-            case 'context_compact':
-            case 'todo_update':
-              return <InfoBlock key={block.id} block={block} />;
-            case 'subagent':
-              return (
-                <div key={block.id} className="border border-pink-800/30 bg-pink-900/10 rounded-lg px-3 py-2 my-1 text-xs">
-                  <div className="flex items-center gap-2">
-                    <GitBranch className="w-3.5 h-3.5 text-pink-400" />
-                    <span className="text-pink-300 font-medium">{block.toolDescription}</span>
-                    {block.toolSuccess === true && <CheckCircle className="w-3 h-3 text-green-400 ml-auto" />}
-                    {block.toolSuccess === false && <XCircle className="w-3 h-3 text-red-400 ml-auto" />}
-                  </div>
-                  {block.content && <div className="text-gray-400 mt-1 truncate">{block.content}</div>}
-                </div>
-              );
-            default:
-              return null;
-          }
-        })}
+        {isIdle ? (
+          <EmptyState />
+        ) : (
+          <>
+            {blocks.map((block) => {
+              switch (block.type) {
+                case 'text':
+                  return (
+                    <div key={block.id} className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed py-1">
+                      {block.content}
+                    </div>
+                  );
+                case 'thinking':
+                  return (
+                    <div key={block.id} className="text-xs text-gray-500 italic border-l-2 border-gray-700 pl-3 py-1 my-1">
+                      {block.content}
+                    </div>
+                  );
+                case 'tool':
+                  return <ToolBlock key={block.id} block={block} />;
+                case 'turn_summary':
+                  return <TurnSummaryBlock key={block.id} block={block} />;
+                case 'file_change':
+                  return (
+                    <div key={block.id} className="flex items-center gap-2 text-xs text-gray-400 py-0.5 px-3">
+                      <FileEdit className="w-3 h-3" />
+                      <span className={block.fileAction === 'created' ? 'text-green-400' : 'text-orange-400'}>
+                        {block.fileAction}
+                      </span>
+                      <span className="text-gray-300 font-mono">{block.fileName}</span>
+                      {(block.linesAdded ?? 0) > 0 && <span className="text-green-400">+{block.linesAdded}</span>}
+                      {(block.linesRemoved ?? 0) > 0 && <span className="text-red-400">-{block.linesRemoved}</span>}
+                    </div>
+                  );
+                case 'error':
+                  return (
+                    <div key={block.id} className="bg-red-900/20 border border-red-800/30 rounded-lg px-4 py-3 my-2 text-sm text-red-300">
+                      {block.content}
+                    </div>
+                  );
+                case 'debug_start':
+                case 'debug_result':
+                case 'test_result':
+                  return <DebugBlock key={block.id} block={block} />;
+                case 'diff_summary':
+                case 'revert':
+                case 'approval_wait':
+                case 'chunk_schedule':
+                case 'context_compact':
+                case 'todo_update':
+                  return <InfoBlock key={block.id} block={block} />;
+                case 'subagent':
+                  return (
+                    <div key={block.id} className="border border-pink-800/30 bg-pink-900/10 rounded-lg px-3 py-2 my-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <GitBranch className="w-3.5 h-3.5 text-pink-400" />
+                        <span className="text-pink-300 font-medium">{block.toolDescription}</span>
+                        {block.toolSuccess === true && <CheckCircle className="w-3 h-3 text-green-400 ml-auto" />}
+                        {block.toolSuccess === false && <XCircle className="w-3 h-3 text-red-400 ml-auto" />}
+                      </div>
+                      {block.content && <div className="text-gray-400 mt-1 truncate">{block.content}</div>}
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            })}
 
-        {/* Loading indicator */}
-        {status === 'running' && (
-          <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Working...</span>
-          </div>
-        )}
+            {/* Loading indicator */}
+            {status === 'running' && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Working...</span>
+              </div>
+            )}
 
-        {/* Done summary */}
-        {status === 'done' && blocks.length > 0 && (
-          <div className="border-t border-gray-700/50 mt-3 pt-3 text-xs text-gray-500 flex items-center gap-4">
-            <span className="text-green-400 font-medium">Done</span>
-            <span>{turns} turn{turns !== 1 ? 's' : ''}</span>
-            <span>{totalToolCalls} tool call{totalToolCalls !== 1 ? 's' : ''}</span>
-            <span>{duration.toFixed(1)}s</span>
-            {totalCost > 0 && <span>${totalCost.toFixed(4)}</span>}
-          </div>
+            {/* Done summary */}
+            {status === 'done' && blocks.length > 0 && (
+              <div className="border-t border-gray-700/50 mt-3 pt-3 text-xs text-gray-500 flex items-center gap-4">
+                <span className="text-green-400 font-medium">Done</span>
+                <span>{turns} turn{turns !== 1 ? 's' : ''}</span>
+                <span>{totalToolCalls} tool call{totalToolCalls !== 1 ? 's' : ''}</span>
+                <span>{duration.toFixed(1)}s</span>
+                {totalCost > 0 && <span>${totalCost.toFixed(4)}</span>}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -497,24 +570,31 @@ export const AgenticChat: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what you want to build..."
+            placeholder={isIdle ? "描述你的任务... (例: 创建一个 Python Flask API 项目)" : "继续描述或发送新任务..."}
             className="flex-1 bg-gray-800 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-gray-200
-                       placeholder-gray-500 resize-none min-h-[42px] max-h-[200px] focus:outline-none focus:border-blue-500/50"
+                       placeholder-gray-500 resize-none min-h-[42px] max-h-[200px] focus:outline-none focus:border-cyan-500/50
+                       transition-colors"
             rows={1}
             disabled={status === 'running'}
           />
           {status === 'running' ? (
             <button onClick={stop}
-                    className="p-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition-colors">
+                    className="p-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition-colors"
+                    title="停止 (Ctrl+C)">
               <Square className="w-5 h-5" />
             </button>
           ) : (
             <button onClick={handleSubmit} disabled={!input.trim()}
-                    className="p-2 rounded-lg bg-blue-600/80 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500
-                               text-white transition-colors">
+                    className="p-2 rounded-lg bg-cyan-600/80 hover:bg-cyan-600 disabled:bg-gray-700 disabled:text-gray-500
+                               text-white transition-colors"
+                    title="发送 (Enter)">
               <Send className="w-5 h-5" />
             </button>
           )}
+        </div>
+        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-gray-600">
+          <span>Enter 发送 · Shift+Enter 换行</span>
+          {status === 'running' && <span className="text-cyan-600">AI 正在执行中...</span>}
         </div>
       </div>
     </div>
