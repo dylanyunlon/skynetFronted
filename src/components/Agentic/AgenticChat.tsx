@@ -1,16 +1,20 @@
 // src/components/Agentic/AgenticChat.tsx
-// Agentic Loop v11 主界面 — Claude Code 风格 UI (全事件渲染 + Workspace集成)
+// Agentic Loop v12 主界面 — Claude Code 风格 UI (全事件渲染 + Workspace集成)
+// TASK-09: Todo 列表交互式展示 | TASK-10: Approval 按钮交互
+// TASK-11: Side-by-side diff (DiffViewer) | BONUS: Agent Loop 可视化, 测试日志展开
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Send, Loader2, Square, Terminal, FileText, Pencil, FilePlus, Files,
   FolderOpen, Search, FileSearch, Globe, Download, ChevronDown,
   ChevronRight, CheckCircle, XCircle, Clock, Zap, PenTool, FileEdit,
   Eye, RotateCcw, Bug, ListTodo, Brain, GitBranch, Code, AlertTriangle,
-  Layers, Minimize2, Activity, Sparkles
+  Layers, Minimize2, Activity, Sparkles, ShieldCheck, ShieldX,
+  CircleDot, CheckSquare, Circle, ArrowRight
 } from 'lucide-react';
 import { useAgenticLoop } from '@/hooks/useAgenticLoop';
-import { AgenticBlock, TOOL_DISPLAY, DetailItem, ToolResultMeta } from '@/types/agentic';
+import { AgenticBlock, TOOL_DISPLAY, DetailItem, ToolResultMeta, TodoItem, TodoStatus } from '@/types/agentic';
+import { DiffViewer } from './DiffViewer';
 
 // ============================================================
 // Props
@@ -53,6 +57,112 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const ToolIcon: React.FC<{ tool: string; className?: string }> = ({ tool, className }) => {
   return <span className={className}>{iconMap[tool] || <Zap className="w-4 h-4" />}</span>;
+};
+
+// ============================================================
+// TASK-09: Todo 列表交互式展示组件
+// ============================================================
+const TodoListDisplay: React.FC<{ todoStatus: TodoStatus }> = ({ todoStatus }) => {
+  const [expanded, setExpanded] = useState(true);
+  const todos = todoStatus.todos || [];
+  const progressPct = todoStatus.total > 0 ? Math.round((todoStatus.completed / todoStatus.total) * 100) : 0;
+
+  const statusIcon = (item: TodoItem) => {
+    switch (item.status) {
+      case 'completed': return <CheckSquare className="w-3.5 h-3.5 text-green-400 shrink-0" />;
+      case 'in_progress': return <CircleDot className="w-3.5 h-3.5 text-blue-400 shrink-0 animate-pulse" />;
+      default: return <Circle className="w-3.5 h-3.5 text-gray-500 shrink-0" />;
+    }
+  };
+
+  const priorityBadge = (p?: string) => {
+    if (!p || p === 'medium') return null;
+    if (p === 'high') return <span className="text-[9px] bg-red-900/30 text-red-400 px-1 rounded">HIGH</span>;
+    if (p === 'low') return <span className="text-[9px] bg-gray-700/40 text-gray-500 px-1 rounded">LOW</span>;
+    return null;
+  };
+
+  return (
+    <div className="border border-indigo-800/30 bg-indigo-900/10 rounded-lg overflow-hidden my-1.5">
+      <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-indigo-900/20 transition-colors"
+           onClick={() => setExpanded(!expanded)}>
+        {expanded ? <ChevronDown className="w-3.5 h-3.5 text-indigo-400" /> : <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />}
+        <ListTodo className="w-4 h-4 text-indigo-400" />
+        <span className="text-sm text-indigo-300 font-medium">
+          {todoStatus.progress_display || `${todoStatus.completed}/${todoStatus.total} tasks`}
+        </span>
+        <div className="flex-1 max-w-[120px] ml-2 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+          <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+        </div>
+        <span className="text-[10px] text-indigo-500">{progressPct}%</span>
+      </div>
+      {expanded && todos.length > 0 && (
+        <div className="border-t border-indigo-800/20 px-3 py-2 space-y-1.5">
+          {todos.map((item) => (
+            <div key={item.id} className={`flex items-start gap-2 text-xs px-2 py-1.5 rounded transition-colors ${
+              item.status === 'completed' ? 'opacity-60' : 'hover:bg-indigo-900/15'
+            }`}>
+              {statusIcon(item)}
+              <span className={`flex-1 ${
+                item.status === 'completed' ? 'text-gray-500 line-through' :
+                item.status === 'in_progress' ? 'text-blue-300' : 'text-gray-300'
+              }`}>{item.content}</span>
+              {priorityBadge(item.priority)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// TASK-10: Approval 审批按钮交互组件
+// ============================================================
+const ApprovalBlock: React.FC<{
+  block: AgenticBlock;
+  onApprove?: (command: string) => void;
+  onDeny?: (command: string) => void;
+}> = ({ block, onApprove, onDeny }) => {
+  const [responded, setResponded] = useState<'approved' | 'denied' | null>(null);
+  const handleApprove = () => { setResponded('approved'); onApprove?.(block.approvalCommand || ''); };
+  const handleDeny = () => { setResponded('denied'); onDeny?.(block.approvalCommand || ''); };
+
+  const riskColor = block.approvalRiskLevel === 'high'
+    ? 'border-red-700/40 bg-red-900/15'
+    : 'border-yellow-700/40 bg-yellow-900/15';
+
+  return (
+    <div className={`border rounded-lg px-3 py-2.5 my-1.5 ${riskColor}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <AlertTriangle className={`w-4 h-4 ${block.approvalRiskLevel === 'high' ? 'text-red-400' : 'text-yellow-400'}`} />
+        <span className="text-sm font-medium text-yellow-300">Approval Required</span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+          block.approvalRiskLevel === 'high' ? 'bg-red-900/30 text-red-400' : 'bg-yellow-900/30 text-yellow-500'
+        }`}>{block.approvalRiskLevel?.toUpperCase() || 'MEDIUM'} RISK</span>
+      </div>
+      <div className="text-xs text-gray-400 font-mono bg-gray-900/50 rounded px-2 py-1.5 mb-2 truncate">
+        {block.approvalCommand}
+      </div>
+      {responded ? (
+        <div className={`flex items-center gap-2 text-xs ${responded === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
+          {responded === 'approved' ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldX className="w-3.5 h-3.5" />}
+          <span>{responded === 'approved' ? 'Approved' : 'Denied'}</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button onClick={handleApprove}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-green-600/80 hover:bg-green-600 text-white transition-colors">
+            <ShieldCheck className="w-3 h-3" /> Approve
+          </button>
+          <button onClick={handleDeny}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-600/80 hover:bg-red-600/80 text-gray-300 hover:text-white transition-colors">
+            <ShieldX className="w-3 h-3" /> Deny
+          </button>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ============================================================
@@ -262,16 +372,14 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
               )}
             </div>
           )}
+          {/* TASK-11: DiffViewer with unified/split toggle */}
           {block.toolDiff && (
-            <pre className="whitespace-pre-wrap text-[11px] leading-relaxed">
-              {block.toolDiff.split('\n').map((line, i) => (
-                <div key={i} className={
-                  line.startsWith('+') && !line.startsWith('+++') ? 'text-green-400 bg-green-900/20' :
-                  line.startsWith('-') && !line.startsWith('---') ? 'text-red-400 bg-red-900/20' :
-                  line.startsWith('@@') ? 'text-blue-400' : 'text-gray-400'
-                }>{line}</div>
-              ))}
-            </pre>
+            <DiffViewer
+              diff={block.toolDiff}
+              filename={meta?.filename}
+              addedLines={meta?.added_lines}
+              removedLines={meta?.removed_lines}
+            />
           )}
           {tool === 'web_search' && meta && (
             <WebSearchResults meta={meta} />
@@ -368,9 +476,11 @@ const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
-// Debug/Test blocks
+// Debug/Test blocks — BONUS: 可展开测试日志
 // ============================================================
 const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
+  const [showLog, setShowLog] = useState(false);
+
   if (block.type === 'debug_start') {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 my-1 bg-yellow-900/10 border border-yellow-800/30 rounded-lg text-xs">
@@ -382,19 +492,30 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   }
   if (block.type === 'debug_result') {
     return (
-      <div className={`flex items-center gap-2 px-3 py-1.5 my-1 rounded-lg text-xs border ${
+      <div className={`px-3 py-1.5 my-1 rounded-lg text-xs border ${
         block.debugPassed ? 'bg-green-900/10 border-green-800/30' : 'bg-red-900/10 border-red-800/30'
       }`}>
-        {block.debugPassed
-          ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-          : <XCircle className="w-3.5 h-3.5 text-red-400" />}
-        <span className={block.debugPassed ? 'text-green-300' : 'text-red-300'}>
-          {block.debugPassed ? 'Tests passed' : 'Tests failed'}
-        </span>
-        {block.debugDiagnosis && (
-          <span className="text-gray-500 ml-2 truncate">
-            {block.debugDiagnosis.error_summary}
+        <div className="flex items-center gap-2">
+          {block.debugPassed
+            ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+            : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+          <span className={block.debugPassed ? 'text-green-300' : 'text-red-300'}>
+            {block.debugPassed ? 'Tests passed' : 'Tests failed'}
           </span>
+          {block.debugDiagnosis && (
+            <span className="text-gray-500 ml-2 truncate">{block.debugDiagnosis.error_summary}</span>
+          )}
+          {block.content && (
+            <button onClick={() => setShowLog(!showLog)}
+              className="ml-auto text-gray-500 hover:text-gray-300 text-[10px] underline">
+              {showLog ? 'Hide log' : 'Show log'}
+            </button>
+          )}
+        </div>
+        {showLog && block.content && (
+          <pre className="mt-2 text-[10px] text-gray-500 bg-gray-900/50 rounded px-2 py-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap">
+            {block.content}
+          </pre>
         )}
       </div>
     );
@@ -402,15 +523,28 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   if (block.type === 'test_result') {
     const pass = block.testPassed;
     return (
-      <div className={`flex items-center gap-2 px-3 py-1.5 my-1 rounded-lg text-xs border ${
+      <div className={`px-3 py-1.5 my-1 rounded-lg text-xs border ${
         pass ? 'bg-green-900/10 border-green-800/30' : 'bg-red-900/10 border-red-800/30'
       }`}>
-        {pass ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-red-400" />}
-        <span className={pass ? 'text-green-300' : 'text-red-300'}>
-          {block.testPassedCount}/{block.testTotal} tests passed
-        </span>
-        {block.testDurationS != null && (
-          <span className="text-gray-500 ml-1">({block.testDurationS.toFixed(1)}s)</span>
+        <div className="flex items-center gap-2">
+          {pass ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+          <span className={pass ? 'text-green-300' : 'text-red-300'}>
+            {block.testPassedCount}/{block.testTotal} tests passed
+          </span>
+          {block.testDurationS != null && (
+            <span className="text-gray-500 ml-1">({block.testDurationS.toFixed(1)}s)</span>
+          )}
+          {block.content && (
+            <button onClick={() => setShowLog(!showLog)}
+              className="ml-auto text-gray-500 hover:text-gray-300 text-[10px] underline">
+              {showLog ? 'Hide output' : 'Show output'}
+            </button>
+          )}
+        </div>
+        {showLog && block.content && (
+          <pre className="mt-2 text-[10px] text-gray-500 bg-gray-900/50 rounded px-2 py-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap">
+            {block.content}
+          </pre>
         )}
       </div>
     );
@@ -419,9 +553,13 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
-// Info blocks: diff_summary, revert, approval, chunk, context
+// Info blocks — TASK-09: TodoListDisplay | TASK-10: ApprovalBlock
 // ============================================================
-const InfoBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
+const InfoBlock: React.FC<{
+  block: AgenticBlock;
+  onApprove?: (command: string) => void;
+  onDeny?: (command: string) => void;
+}> = ({ block, onApprove, onDeny }) => {
   if (block.type === 'diff_summary' && (block.diffFilesChanged ?? 0) > 0) {
     return (
       <div className="flex items-center gap-2 px-3 py-1 my-1 text-xs text-gray-400 bg-gray-800/20 rounded border border-gray-700/30">
@@ -441,14 +579,7 @@ const InfoBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
     );
   }
   if (block.type === 'approval_wait') {
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 my-1 text-xs bg-yellow-900/15 border border-yellow-700/40 rounded-lg">
-        <AlertTriangle className="w-4 h-4 text-yellow-400" />
-        <span className="text-yellow-300 font-medium">Approval needed</span>
-        <span className="text-gray-400 font-mono truncate">{block.approvalCommand}</span>
-        <span className="text-yellow-500/70 text-[10px]">Risk: {block.approvalRiskLevel}</span>
-      </div>
-    );
+    return <ApprovalBlock block={block} onApprove={onApprove} onDeny={onDeny} />;
   }
   if (block.type === 'chunk_schedule') {
     return (
@@ -467,15 +598,29 @@ const InfoBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
     );
   }
   if (block.type === 'todo_update' && block.todoStatus) {
-    const ts = block.todoStatus;
-    return (
-      <div className="flex items-center gap-2 px-3 py-1 my-1 text-xs text-indigo-400 bg-indigo-900/10 border border-indigo-800/20 rounded">
-        <ListTodo className="w-3 h-3" />
-        <span>{ts.progress_display || `${ts.completed}/${ts.total} completed`}</span>
-      </div>
-    );
+    return <TodoListDisplay todoStatus={block.todoStatus} />;
   }
   return null;
+};
+
+// ============================================================
+// BONUS: Agent Loop 步骤可视化 — 灵感来自 Claude Code v0-v4
+// ============================================================
+const AgentLoopIndicator: React.FC<{ status: string; turns: number; totalToolCalls: number }> = ({ status, turns, totalToolCalls }) => {
+  if (status !== 'running' || turns < 1) return null;
+  const steps = ['Prompt', 'Model', 'Tool Use', 'Result'];
+  const activeStep = totalToolCalls > 0 ? (totalToolCalls % 4) : 0;
+  return (
+    <div className="flex items-center gap-1 text-[9px] text-gray-600 px-3 py-1 bg-gray-800/20 rounded-md">
+      {steps.map((step, i) => (
+        <React.Fragment key={step}>
+          <span className={`px-1.5 py-0.5 rounded ${i === activeStep ? 'bg-cyan-900/40 text-cyan-400 font-medium' : ''}`}>{step}</span>
+          {i < steps.length - 1 && <ArrowRight className="w-2.5 h-2.5 text-gray-700" />}
+        </React.Fragment>
+      ))}
+      <span className="ml-2 text-gray-600">Loop #{turns}</span>
+    </div>
+  );
 };
 
 // ============================================================
@@ -556,6 +701,17 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
     setInput('');
     setTimeout(() => inputRef.current?.focus(), 100);
   };
+
+  // TASK-10: Approval callback handlers
+  const handleApprove = useCallback((command: string) => {
+    console.log('[AgenticChat] Approved:', command);
+    // TODO: Wire to backend POST /api/agentic/approve
+  }, []);
+
+  const handleDeny = useCallback((command: string) => {
+    console.log('[AgenticChat] Denied:', command);
+    // TODO: Wire to backend POST /api/agentic/deny
+  }, []);
 
   const isIdle = status === 'idle' && blocks.length === 0;
 
@@ -645,7 +801,7 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
                 case 'chunk_schedule':
                 case 'context_compact':
                 case 'todo_update':
-                  return <InfoBlock key={block.id} block={block} />;
+                  return <InfoBlock key={block.id} block={block} onApprove={handleApprove} onDeny={handleDeny} />;
                 case 'subagent':
                   return (
                     <div key={block.id} className="border border-pink-800/30 bg-pink-900/10 rounded-lg px-3 py-2 my-1 text-xs">
@@ -662,6 +818,11 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
                   return null;
               }
             })}
+
+            {/* BONUS: Agent Loop 步骤指示器 */}
+            {status === 'running' && (
+              <AgentLoopIndicator status={status} turns={turns} totalToolCalls={totalToolCalls} />
+            )}
 
             {/* Loading indicator */}
             {status === 'running' && (
