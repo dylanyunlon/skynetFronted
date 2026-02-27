@@ -1692,22 +1692,31 @@ skynetFronted/
 ## 第四步: 开发顺序 (优先级)
 
 ### Phase 1: 基础架构搭建 (Day 1-2)
-5. 从 marimo 适配 UI 基础组件
+5. ✅ 从 marimo 适配 UI 基础组件
+   - ✅ 安装 npm 依赖: jotai, @tanstack/react-table, recharts, class-variance-authority, tailwind-merge, framer-motion, react-syntax-highlighter
+   - ✅ 创建 `src/styles/themes/variables.css` — CSS 设计变量系统 (120+ CSS custom properties)
+   - ✅ 创建 `src/styles/themes/dark.css` — 暗色主题覆盖
+   - ✅ 创建 `src/styles/animations/index.css` — 共享动画 keyframes + 工具类
+   - ✅ 创建 `src/lib/cn.ts` — Tailwind className merge 工具 (marimo/shadcn pattern)
+   - ✅ 创建 `src/vite-env.d.ts` — CSS module 和静态资源类型声明
+   - ✅ 更新 `src/styles/index.css` — 导入新主题和动画文件
 
 ### Phase 3: Agent 可视化 (Day 6-8)
-1. AgentLoop 组件 (展示 tool_use → tool_result 循环)
-2. ToolExecution 显示 (bash 命令执行可视化)
-3. SubagentPanel (子 agent 递归展示)
-4. BashTerminal 终端模拟
-5. TaskProgress 任务进度
+1. ✅ AgentLoop 组件 (展示 tool_use → tool_result 循环) — `src/components/agent/AgentLoop/`
+2. ✅ ToolExecution 显示 (bash 命令执行可视化) — `src/components/agent/ToolExecution/`
+3. ✅ SubagentPanel (子 agent 递归展示) — `src/components/agent/SubagentPanel/`
+4. ✅ BashTerminal 终端模拟 — `src/components/agent/BashTerminal/`
+5. ✅ TaskProgress 任务进度 — `src/components/agent/TaskProgress/`
+   - ✅ 统一导出 `src/components/agent/index.ts`
+   - 每个组件包含: .tsx + .module.css + index.ts (共 15 个新文件)
 
-### Phase 4: 数据展示 (Day 9-10)
+### Phase 4: 数据展示 (Day 9-10) — 待实现
 1. DataTable 组件 (TanStack Table)
 2. Chart 插件 (Recharts)
 3. CodeEditor (CodeMirror)
 4. FileViewer
 
-### Phase 5: 插件系统 + 打磨 (Day 11-14)
+### Phase 5: 插件系统 + 打磨 (Day 11-14) — 待实现
 1. Plugin builder + registry
 2. 响应式适配
 3. 动画/微交互

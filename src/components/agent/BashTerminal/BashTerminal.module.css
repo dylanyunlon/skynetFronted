@@ -1,0 +1,151 @@
+/* BashTerminal — macOS-style terminal emulator */
+
+.wrapper {
+  border-radius: var(--sky-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--sky-border);
+  background: hsl(225, 20%, 8%);
+  box-shadow: var(--sky-shadow-lg);
+}
+
+/* ---- Title bar (macOS style) ---- */
+
+.titleBar {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-3);
+  padding: var(--sky-space-2) var(--sky-space-3);
+  background: hsl(225, 16%, 14%);
+  border-bottom: 1px solid hsl(225, 14%, 18%);
+  user-select: none;
+}
+
+.trafficLights {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot.red    { background: #ff5f57; }
+.dot.yellow { background: #febc2e; }
+.dot.green  { background: #28c840; }
+
+.title {
+  flex: 1;
+  text-align: center;
+  font-size: var(--sky-text-xs);
+  color: hsl(215, 16%, 55%);
+  font-weight: 500;
+}
+
+.titleRight {
+  width: 48px;
+  text-align: right;
+}
+
+.runningIndicator {
+  font-size: 12px;
+}
+
+/* ---- Terminal body ---- */
+
+.body {
+  padding: var(--sky-space-3);
+  overflow-y: auto;
+  font-family: var(--sky-font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: hsl(120, 10%, 80%);
+  scrollbar-width: thin;
+  scrollbar-color: hsl(225, 14%, 25%) transparent;
+}
+
+.body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.body::-webkit-scrollbar-thumb {
+  background: hsl(225, 14%, 25%);
+  border-radius: 3px;
+}
+
+/* ---- Lines ---- */
+
+.commandLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sky-space-2);
+  margin-bottom: 2px;
+}
+
+.prompt {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cwd {
+  color: hsl(188, 78%, 55%);
+  font-weight: 600;
+}
+
+.promptChar {
+  color: hsl(142, 71%, 55%);
+  font-weight: 700;
+}
+
+.commandText {
+  color: hsl(0, 0%, 95%);
+  word-break: break-all;
+}
+
+.exitBadge {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 10px;
+  color: hsl(0, 72%, 60%);
+  background: hsla(0, 72%, 60%, 0.15);
+  padding: 0 6px;
+  border-radius: 3px;
+}
+
+.outputLine {
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: hsl(215, 10%, 70%);
+}
+
+.errorLine {
+  color: hsl(0, 72%, 65%);
+}
+
+.infoLine {
+  color: hsl(217, 50%, 65%);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.separator {
+  border: none;
+  border-top: 1px solid hsl(225, 14%, 20%);
+  margin: var(--sky-space-2) 0;
+}
+
+/* ---- Cursor ---- */
+
+.cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  background: hsl(120, 10%, 80%);
+  animation: sky-blink 1s step-end infinite;
+  vertical-align: text-bottom;
+}

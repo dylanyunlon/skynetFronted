@@ -1,3 +1,9 @@
+/* === SkyNet Design System === */
+@import url("./themes/variables.css");
+@import url("./themes/dark.css");
+@import url("./animations/index.css");
+
+/* === Marimo-inherited styles === */
 @import url("./globals.css");
 @import url("./codehilite.css");
 @import url("./common.css");

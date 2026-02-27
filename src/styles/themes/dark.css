@@ -1,0 +1,50 @@
+/* ===================================================
+   SkyNet Dark Theme — CSS Variable Overrides
+   =================================================== */
+
+[data-theme='dark'],
+.dark {
+  --sky-primary: hsl(217, 91%, 65%);
+  --sky-primary-foreground: hsl(222, 47%, 11%);
+  --sky-primary-hover: hsl(217, 91%, 72%);
+  --sky-primary-active: hsl(217, 91%, 58%);
+  --sky-primary-muted: hsl(217, 40%, 18%);
+
+  --sky-accent: hsl(188, 78%, 55%);
+  --sky-accent-foreground: hsl(222, 47%, 11%);
+
+  --sky-success: hsl(142, 71%, 55%);
+  --sky-success-bg: hsl(142, 40%, 12%);
+  --sky-warning: hsl(38, 92%, 60%);
+  --sky-warning-bg: hsl(38, 40%, 12%);
+  --sky-error: hsl(0, 72%, 60%);
+  --sky-error-bg: hsl(0, 40%, 12%);
+  --sky-info: hsl(217, 91%, 68%);
+  --sky-info-bg: hsl(217, 40%, 12%);
+
+  --sky-bg: hsl(224, 20%, 10%);
+  --sky-bg-secondary: hsl(224, 18%, 14%);
+  --sky-bg-tertiary: hsl(224, 16%, 18%);
+  --sky-bg-hover: hsl(224, 16%, 16%);
+  --sky-bg-active: hsl(224, 16%, 20%);
+
+  --sky-surface: hsl(224, 18%, 13%);
+  --sky-surface-raised: hsl(224, 16%, 16%);
+  --sky-surface-overlay: hsl(224, 18%, 15%);
+
+  --sky-border: hsl(224, 14%, 22%);
+  --sky-border-subtle: hsl(224, 14%, 18%);
+  --sky-border-strong: hsl(224, 10%, 32%);
+
+  --sky-text: hsl(210, 40%, 95%);
+  --sky-text-secondary: hsl(215, 16%, 65%);
+  --sky-text-tertiary: hsl(215, 13%, 50%);
+  --sky-text-disabled: hsl(215, 13%, 38%);
+  --sky-text-inverse: hsl(222, 47%, 11%);
+
+  --sky-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --sky-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --sky-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --sky-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --sky-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,149 @@
+/* AgentLoop — Step pipeline visualization */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sky-space-3);
+  padding: var(--sky-space-3) var(--sky-space-4);
+  background: var(--sky-surface);
+  border: 1px solid var(--sky-border-subtle);
+  border-radius: var(--sky-radius-lg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+}
+
+.turnBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sky-space-1);
+  padding: 2px 8px;
+  background: var(--sky-primary-muted);
+  border-radius: var(--sky-radius-full);
+  font-size: var(--sky-text-xs);
+  font-weight: 600;
+}
+
+.turnLabel {
+  color: var(--sky-text-secondary);
+}
+
+.turnValue {
+  color: var(--sky-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.toolCountBadge {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-secondary);
+  padding: 2px 8px;
+  background: var(--sky-bg-secondary);
+  border-radius: var(--sky-radius-full);
+}
+
+.runningDot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+}
+
+.runningPulse {
+  position: absolute;
+  inset: 0;
+  background: var(--sky-success);
+  border-radius: 50%;
+  animation: sky-pulse-ring 2s ease-in-out infinite;
+}
+
+/* ---- Pipeline ---- */
+
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.stepNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stepDot {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sky-bg-secondary);
+  border: 2px solid var(--sky-border);
+  transition: all var(--sky-duration-normal) var(--sky-ease-default);
+}
+
+.stepNode.active .stepDot {
+  background: color-mix(in srgb, var(--step-color) 15%, transparent);
+  border-color: var(--step-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-color) 20%, transparent);
+}
+
+.stepNode.completed .stepDot {
+  background: color-mix(in srgb, var(--step-color) 12%, transparent);
+  border-color: color-mix(in srgb, var(--step-color) 50%, transparent);
+}
+
+.stepPulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--step-color);
+  opacity: 0.4;
+  animation: sky-pulse-ring 2s ease-in-out infinite;
+}
+
+.stepIcon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.stepLabel {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--sky-text-tertiary);
+  transition: color var(--sky-duration-normal) var(--sky-ease-default);
+}
+
+.stepNode.active .stepLabel {
+  color: var(--sky-text);
+  font-weight: 600;
+}
+
+.stepNode.completed .stepLabel {
+  color: var(--sky-text-secondary);
+}
+
+/* ---- Connector ---- */
+
+.connector {
+  flex: 1;
+  height: 2px;
+  background: var(--sky-border);
+  margin: 0 4px;
+  margin-bottom: 18px; /* offset for label */
+  border-radius: 1px;
+  transition: background var(--sky-duration-normal) var(--sky-ease-default);
+  min-width: 24px;
+}
+
+.connector.filled {
+  background: var(--sky-primary);
+  opacity: 0.5;
+}

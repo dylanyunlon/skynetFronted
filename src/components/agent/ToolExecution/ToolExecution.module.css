@@ -1,0 +1,167 @@
+/* ToolExecution — Claude Code style tool block */
+
+.wrapper {
+  border: 1px solid var(--sky-border-subtle);
+  border-radius: var(--sky-radius-md);
+  overflow: hidden;
+  transition: border-color var(--sky-duration-fast) var(--sky-ease-default);
+}
+
+.wrapper:hover {
+  border-color: var(--sky-border);
+}
+
+.wrapper.running {
+  border-color: color-mix(in srgb, var(--sky-warning) 40%, transparent);
+}
+
+.wrapper.failed {
+  border-color: color-mix(in srgb, var(--sky-error) 30%, transparent);
+  background: var(--sky-error-bg);
+}
+
+/* ---- Header (clickable) ---- */
+
+.header {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+  width: 100%;
+  padding: var(--sky-space-2) var(--sky-space-3);
+  cursor: pointer;
+  transition: background var(--sky-duration-fast) var(--sky-ease-default);
+  font-family: var(--sky-font-sans);
+}
+
+.header:hover {
+  background: var(--sky-bg-hover);
+}
+
+.header:disabled {
+  cursor: default;
+}
+
+.icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.headerContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.toolLabel {
+  font-size: var(--sky-text-xs);
+  font-weight: 600;
+  color: var(--sky-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.command {
+  font-family: var(--sky-font-mono);
+  font-size: var(--sky-text-sm);
+  color: var(--sky-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: none;
+  padding: 0;
+}
+
+.argPreview {
+  font-size: var(--sky-text-sm);
+  color: var(--sky-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.description {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Badges ---- */
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+  flex-shrink: 0;
+}
+
+.duration {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.exitCode {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-error);
+  font-family: var(--sky-font-mono);
+}
+
+.status {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chevron {
+  font-size: 12px;
+  color: var(--sky-text-tertiary);
+  transition: transform var(--sky-duration-fast) var(--sky-ease-default);
+}
+
+.chevron[data-expanded='true'] {
+  transform: rotate(90deg);
+}
+
+/* ---- Output ---- */
+
+.output {
+  border-top: 1px solid var(--sky-border-subtle);
+  background: var(--sky-bg-secondary);
+  animation: sky-slide-down var(--sky-duration-fast) var(--sky-ease-out);
+}
+
+.outputPre {
+  margin: 0;
+  padding: var(--sky-space-3);
+  font-family: var(--sky-font-mono);
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.showMore {
+  all: unset;
+  display: block;
+  width: 100%;
+  padding: var(--sky-space-1) var(--sky-space-3);
+  font-size: var(--sky-text-xs);
+  color: var(--sky-primary);
+  cursor: pointer;
+  text-align: center;
+  border-top: 1px solid var(--sky-border-subtle);
+}
+
+.showMore:hover {
+  background: var(--sky-bg-hover);
+}

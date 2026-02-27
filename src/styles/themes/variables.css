@@ -1,0 +1,129 @@
+/* ===================================================
+   SkyNet Design Tokens — CSS Custom Properties
+   Adapted from marimo's theming approach
+   =================================================== */
+
+:root {
+  /* ---- Color Palette (HSL for easy manipulation) ---- */
+  --sky-primary-h: 221;
+  --sky-primary-s: 83%;
+  --sky-primary-l: 53%;
+  --sky-primary: hsl(var(--sky-primary-h), var(--sky-primary-s), var(--sky-primary-l));
+  --sky-primary-foreground: hsl(0, 0%, 100%);
+  --sky-primary-hover: hsl(var(--sky-primary-h), var(--sky-primary-s), 46%);
+  --sky-primary-active: hsl(var(--sky-primary-h), var(--sky-primary-s), 40%);
+  --sky-primary-muted: hsl(var(--sky-primary-h), 60%, 95%);
+
+  --sky-accent-h: 188;
+  --sky-accent-s: 78%;
+  --sky-accent-l: 46%;
+  --sky-accent: hsl(var(--sky-accent-h), var(--sky-accent-s), var(--sky-accent-l));
+  --sky-accent-foreground: hsl(0, 0%, 100%);
+
+  /* Semantic Colors */
+  --sky-success: hsl(142, 71%, 45%);
+  --sky-success-bg: hsl(142, 76%, 95%);
+  --sky-warning: hsl(38, 92%, 50%);
+  --sky-warning-bg: hsl(38, 92%, 95%);
+  --sky-error: hsl(0, 72%, 51%);
+  --sky-error-bg: hsl(0, 72%, 96%);
+  --sky-info: hsl(217, 91%, 60%);
+  --sky-info-bg: hsl(217, 91%, 96%);
+
+  /* Neutrals */
+  --sky-bg: hsl(0, 0%, 100%);
+  --sky-bg-secondary: hsl(220, 14%, 96%);
+  --sky-bg-tertiary: hsl(220, 13%, 91%);
+  --sky-bg-hover: hsl(220, 14%, 93%);
+  --sky-bg-active: hsl(220, 14%, 89%);
+
+  --sky-surface: hsl(0, 0%, 100%);
+  --sky-surface-raised: hsl(0, 0%, 100%);
+  --sky-surface-overlay: hsl(0, 0%, 100%);
+
+  --sky-border: hsl(220, 13%, 91%);
+  --sky-border-subtle: hsl(220, 13%, 95%);
+  --sky-border-strong: hsl(220, 9%, 80%);
+
+  --sky-text: hsl(222, 47%, 11%);
+  --sky-text-secondary: hsl(215, 16%, 47%);
+  --sky-text-tertiary: hsl(215, 13%, 65%);
+  --sky-text-disabled: hsl(215, 13%, 75%);
+  --sky-text-inverse: hsl(0, 0%, 100%);
+  --sky-text-link: var(--sky-primary);
+
+  /* ---- Typography ---- */
+  --sky-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sky-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  --sky-text-xs: 0.75rem;    /* 12px */
+  --sky-text-sm: 0.8125rem;  /* 13px */
+  --sky-text-base: 0.875rem; /* 14px */
+  --sky-text-lg: 1rem;       /* 16px */
+  --sky-text-xl: 1.125rem;   /* 18px */
+  --sky-text-2xl: 1.5rem;    /* 24px */
+  --sky-text-3xl: 1.875rem;  /* 30px */
+
+  --sky-leading-tight: 1.25;
+  --sky-leading-normal: 1.5;
+  --sky-leading-relaxed: 1.625;
+
+  --sky-tracking-tight: -0.025em;
+  --sky-tracking-normal: 0;
+  --sky-tracking-wide: 0.025em;
+
+  /* ---- Spacing ---- */
+  --sky-space-0: 0;
+  --sky-space-1: 0.25rem;   /* 4px */
+  --sky-space-2: 0.5rem;    /* 8px */
+  --sky-space-3: 0.75rem;   /* 12px */
+  --sky-space-4: 1rem;      /* 16px */
+  --sky-space-5: 1.25rem;   /* 20px */
+  --sky-space-6: 1.5rem;    /* 24px */
+  --sky-space-8: 2rem;      /* 32px */
+  --sky-space-10: 2.5rem;   /* 40px */
+  --sky-space-12: 3rem;     /* 48px */
+  --sky-space-16: 4rem;     /* 64px */
+
+  /* ---- Borders ---- */
+  --sky-radius-sm: 0.375rem;  /* 6px */
+  --sky-radius-md: 0.5rem;    /* 8px */
+  --sky-radius-lg: 0.75rem;   /* 12px */
+  --sky-radius-xl: 1rem;      /* 16px */
+  --sky-radius-2xl: 1.5rem;   /* 24px */
+  --sky-radius-full: 9999px;
+
+  /* ---- Shadows ---- */
+  --sky-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --sky-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --sky-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --sky-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --sky-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --sky-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+
+  /* ---- Z-Index ---- */
+  --sky-z-dropdown: 1000;
+  --sky-z-sticky: 1020;
+  --sky-z-fixed: 1030;
+  --sky-z-modal-backdrop: 1040;
+  --sky-z-modal: 1050;
+  --sky-z-popover: 1060;
+  --sky-z-tooltip: 1070;
+  --sky-z-toast: 1080;
+
+  /* ---- Transitions ---- */
+  --sky-duration-fast: 100ms;
+  --sky-duration-normal: 200ms;
+  --sky-duration-slow: 300ms;
+  --sky-ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --sky-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --sky-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --sky-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---- Layout ---- */
+  --sky-sidebar-width: 260px;
+  --sky-sidebar-collapsed-width: 64px;
+  --sky-header-height: 52px;
+  --sky-chat-max-width: 768px;
+  --sky-panel-min-width: 320px;
+}

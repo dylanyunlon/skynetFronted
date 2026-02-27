@@ -1,0 +1,95 @@
+/* ===================================================
+   SkyNet Animations — Shared keyframes & utilities
+   =================================================== */
+
+/* ---- Fade ---- */
+@keyframes sky-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sky-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ---- Slide ---- */
+@keyframes sky-slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes sky-slide-down {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes sky-slide-left {
+  from { transform: translateX(8px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes sky-slide-right {
+  from { transform: translateX(-8px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* ---- Scale ---- */
+@keyframes sky-scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sky-scale-out {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.95); opacity: 0; }
+}
+
+/* ---- Skeleton / Shimmer ---- */
+@keyframes sky-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ---- Pulse (for status dots) ---- */
+@keyframes sky-pulse-ring {
+  0%   { transform: scale(0.8); opacity: 1; }
+  50%  { transform: scale(1.2); opacity: 0.4; }
+  100% { transform: scale(0.8); opacity: 1; }
+}
+
+/* ---- Spinner ---- */
+@keyframes sky-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Typewriter cursor ---- */
+@keyframes sky-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ---- Collapse / Expand ---- */
+@keyframes sky-collapse {
+  from { height: var(--sky-collapse-height, auto); opacity: 1; }
+  to   { height: 0; opacity: 0; }
+}
+
+@keyframes sky-expand {
+  from { height: 0; opacity: 0; }
+  to   { height: var(--sky-collapse-height, auto); opacity: 1; }
+}
+
+/* ---- Utility classes ---- */
+.sky-animate-fade-in   { animation: sky-fade-in var(--sky-duration-normal) var(--sky-ease-out) both; }
+.sky-animate-slide-up  { animation: sky-slide-up var(--sky-duration-normal) var(--sky-ease-out) both; }
+.sky-animate-slide-down { animation: sky-slide-down var(--sky-duration-normal) var(--sky-ease-out) both; }
+.sky-animate-scale-in  { animation: sky-scale-in var(--sky-duration-fast) var(--sky-ease-bounce) both; }
+.sky-animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, var(--sky-bg-tertiary) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: sky-shimmer 1.5s infinite;
+}
+.sky-animate-spin      { animation: sky-spin 1s linear infinite; }
+.sky-animate-blink     { animation: sky-blink 1s step-end infinite; }
+.sky-animate-pulse     { animation: sky-pulse-ring 2s ease-in-out infinite; }

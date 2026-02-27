@@ -1,0 +1,113 @@
+/* TaskProgress — Done / Running summary bar */
+
+.wrapper {
+  padding: var(--sky-space-3) var(--sky-space-4);
+  border-radius: var(--sky-radius-lg);
+  border: 1px solid var(--sky-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sky-space-3);
+}
+
+.wrapper.running {
+  background: color-mix(in srgb, var(--sky-info) 5%, var(--sky-surface));
+  border-color: color-mix(in srgb, var(--sky-info) 25%, transparent);
+}
+
+.wrapper.done {
+  background: color-mix(in srgb, var(--sky-success) 5%, var(--sky-surface));
+  border-color: color-mix(in srgb, var(--sky-success) 25%, transparent);
+}
+
+/* ---- Header ---- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+}
+
+.runningDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sky-info);
+  animation: sky-pulse-ring 2s ease-in-out infinite;
+}
+
+.doneIcon {
+  font-size: 16px;
+  color: var(--sky-success);
+  font-weight: 700;
+}
+
+.statusText {
+  font-size: var(--sky-text-base);
+  font-weight: 600;
+  color: var(--sky-text);
+}
+
+.stopReason {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-tertiary);
+}
+
+/* ---- Stats ---- */
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sky-space-4);
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.statIcon {
+  font-size: 12px;
+}
+
+.statValue {
+  font-size: var(--sky-text-sm);
+  font-weight: 600;
+  color: var(--sky-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-tertiary);
+}
+
+/* ---- Todo bar ---- */
+
+.todoBar {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+}
+
+.todoProgress {
+  flex: 1;
+  height: 4px;
+  background: var(--sky-bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.todoFill {
+  height: 100%;
+  background: var(--sky-success);
+  border-radius: 2px;
+  transition: width var(--sky-duration-normal) var(--sky-ease-default);
+}
+
+.todoLabel {
+  font-size: var(--sky-text-xs);
+  color: var(--sky-text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
