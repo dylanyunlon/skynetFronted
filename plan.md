@@ -1094,3 +1094,800 @@ rm src/components/Agentic/AgenticChat.tsx.bak
 | **标记** | `src/components/AgenticLoop.tsx` | @deprecated 标记 |
 | **备份** | `src/components/Agentic/AgenticChat.tsx.v11.bak` | 原文件备份 |
 | **更新** | `plan.md` | 进度更新 |
+
+03更新：
+# skynetFronted × marimo 前端集成开发计划
+
+## 项目概述
+
+**目标**: 在现有 `skynetFronted` (TypeScript/React/Vite/Tailwind) 前端项目中，参考 marimo 项目的前端架构，构建类似 Claude 网页端的交互式展示界面。最终前端样式文件超过 300 个。
+
+**参考项目**:
+- `github.com/marimo-team/marimo` — 前端架构、组件系统、插件体系
+- `github.com/dylanyunlon/skynetCheapBuy` — 后端 Agent 服务 (Python/FastAPI, v5+)
+- `github.com/dylanyunlon/skynetFronted` — 当前前端项目 (13次提交, TypeScript 98.3%)
+- Claude Code Agent Loop v0-v4 — agent 循环架构参考
+
+**服务器路径**:
+- 前端项目: `/root/dylan/skynetCheapBuy/skynetFronted/` (实际前端代码)
+- marimo 源码: `/root/dylan/skynetCheapBuy/marimo/` (参考源)
+- 后端项目: `/root/dylan/skynetCheapBuy/` (FastAPI 后端)
+
+---
+
+## 第一步: 从 marimo 复制的核心文件清单
+
+### 1.1 需要从 marimo `frontend/src/` 复制的文件分类
+
+根据 marimo 的前端架构 (TypeScript 38.1%, CSS 0.7%, 5328次提交), 以下是需要参考/复制的文件目录:
+
+#### A. 核心组件系统 (从 `marimo/frontend/src/components/`)
+```
+复制路径: marimo/frontend/src/components/ → skynetFronted/src/components/
+
+需要的目录/文件:
+├── ui/                          # UI 基础组件库
+│   ├── button.tsx
+│   ├── input.tsx
+│   ├── select.tsx
+│   ├── dialog.tsx
+│   ├── dropdown.tsx
+│   ├── tooltip.tsx
+│   ├── tabs.tsx
+│   ├── slider.tsx
+│   ├── switch.tsx
+│   ├── badge.tsx
+│   ├── card.tsx
+│   ├── alert.tsx
+│   ├── separator.tsx
+│   ├── scroll-area.tsx
+│   ├── popover.tsx
+│   ├── command.tsx
+│   ├── label.tsx
+│   ├── textarea.tsx
+│   └── checkbox.tsx
+├── data-table/                  # 数据表格系统
+│   ├── DataTablePlugin.tsx
+│   ├── column-summary/
+│   │   └── chart-spec-model.ts
+│   ├── cell-styling/
+│   │   └── feature.ts
+│   └── pagination/
+├── app-config/                  # 应用配置UI
+│   └── user-config-form.tsx
+├── editor/                      # 代码编辑器组件
+│   ├── cell-editor.tsx
+│   ├── output-area.tsx
+│   └── cell-actions.tsx
+├── chat/                        # 聊天界面 (类Claude样式)
+│   ├── chat-input.tsx
+│   ├── chat-message.tsx
+│   ├── chat-history.tsx
+│   └── chat-actions.tsx
+└── layout/                      # 布局组件
+    ├── sidebar.tsx
+    ├── header.tsx
+    ├── main-layout.tsx
+    └── panel-resizer.tsx
+```
+
+#### B. 核心状态管理 (从 `marimo/frontend/src/core/`)
+```
+复制路径: marimo/frontend/src/core/ → skynetFronted/src/core/
+
+├── state/                       # Jotai 状态管理
+│   ├── atoms.ts
+│   ├── selectors.ts
+│   └── store.ts
+├── config/
+│   ├── config-schema.ts         # Zod 验证 schema
+│   └── feature-flag.tsx         # 实验性功能开关
+├── codemirror/                  # CodeMirror 编辑器集成
+│   ├── readonly/
+│   │   └── extension.ts
+│   └── theme/
+└── network/                     # 网络通信层
+    ├── websocket.ts             # WebSocket 实时通信
+    ├── api-client.ts            # REST API 客户端
+    └── requests.ts
+```
+
+#### C. 插件系统 (从 `marimo/frontend/src/plugins/`)
+```
+复制路径: marimo/frontend/src/plugins/ → skynetFronted/src/plugins/
+
+├── core/
+│   └── builder.ts               # createPlugin() 构建器模式
+├── impl/
+│   ├── DataTablePlugin.tsx       # 数据表插件
+│   ├── SliderPlugin.tsx
+│   ├── DropdownPlugin.tsx
+│   ├── ChatPlugin.tsx           # 聊天插件
+│   └── multiselectFilterFn.tsx
+└── registry.ts                   # 插件注册表
+```
+
+#### D. CSS/样式文件体系
+```
+复制路径: marimo/frontend/src/ → skynetFronted/src/
+
+需要创建的 CSS 文件类别:
+
+1. 主题系统 (30+ 文件)
+   styles/
+   ├── themes/
+   │   ├── light.css
+   │   ├── dark.css
+   │   ├── variables.css          # CSS 变量定义
+   │   ├── typography.css
+   │   ├── colors.css
+   │   ├── spacing.css
+   │   ├── shadows.css
+   │   ├── borders.css
+   │   ├── animations.css
+   │   └── transitions.css
+   ├── base/
+   │   ├── reset.css
+   │   ├── normalize.css
+   │   └── global.css
+
+2. 组件样式 (100+ 文件, 每个组件一个CSS module)
+   components/
+   ├── ui/button.module.css
+   ├── ui/input.module.css
+   ├── ui/dialog.module.css
+   ├── ... (每个 UI 组件)
+   ├── chat/chat-input.module.css
+   ├── chat/chat-message.module.css
+   ├── chat/chat-bubble.module.css
+   ├── data-table/*.module.css
+   └── editor/*.module.css
+
+3. 布局样式 (20+ 文件)
+   layouts/
+   ├── sidebar.module.css
+   ├── main-panel.module.css
+   ├── split-view.module.css
+   ├── responsive.css
+   └── grid.css
+
+4. 动画/过渡 (15+ 文件)
+   animations/
+   ├── fade.css
+   ├── slide.css
+   ├── scale.css
+   ├── loading.css
+   ├── skeleton.css
+   └── typewriter.css
+
+5. 插件样式 (30+ 文件)
+   plugins/
+   ├── data-table.module.css
+   ├── chart.module.css
+   ├── code-editor.module.css
+   └── markdown-renderer.module.css
+```
+
+### 1.2 需要安装的 npm 依赖 (参考 marimo frontend/package.json)
+
+```bash
+# 核心框架 (已有)
+# react, react-dom, vite, tailwindcss, typescript
+
+# 新增依赖
+npm install jotai                    # 状态管理 (marimo 使用)
+npm install @codemirror/state @codemirror/view  # 代码编辑器
+npm install @tanstack/react-table    # 数据表格
+npm install zod                      # Schema 验证
+npm install recharts                 # 图表
+npm install lucide-react             # 图标库
+npm install @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs @radix-ui/react-tooltip @radix-ui/react-popover @radix-ui/react-scroll-area  # UI 原语
+npm install class-variance-authority # 组件变体
+npm install clsx tailwind-merge      # CSS 工具
+npm install framer-motion            # 动画
+npm install react-markdown           # Markdown 渲染
+npm install react-syntax-highlighter # 代码高亮
+npm install papaparse                # CSV 处理
+```
+
+---
+
+## 第二步: skynetFronted 目录结构规划 (300+ 文件)
+
+```
+skynetFronted/
+├── public/
+│   ├── favicon.ico
+│   ├── logo.svg
+│   └── assets/
+│       ├── fonts/              # 10+ 字体文件
+│       └── images/             # 5+ 图片资源
+├── src/
+│   ├── main.tsx                # 入口
+│   ├── App.tsx                 # 根组件
+│   ├── vite-env.d.ts
+│   │
+│   ├── styles/                 # ===== 样式文件 (65 files) =====
+│   │   ├── base/
+│   │   │   ├── reset.css
+│   │   │   ├── normalize.css
+│   │   │   ├── global.css
+│   │   │   ├── typography.css
+│   │   │   └── utilities.css
+│   │   ├── themes/
+│   │   │   ├── variables.css
+│   │   │   ├── light.css
+│   │   │   ├── dark.css
+│   │   │   ├── colors.css
+│   │   │   ├── spacing.css
+│   │   │   ├── shadows.css
+│   │   │   ├── borders.css
+│   │   │   ├── z-index.css
+│   │   │   └── breakpoints.css
+│   │   ├── animations/
+│   │   │   ├── fade.css
+│   │   │   ├── slide.css
+│   │   │   ├── scale.css
+│   │   │   ├── rotate.css
+│   │   │   ├── bounce.css
+│   │   │   ├── shake.css
+│   │   │   ├── pulse.css
+│   │   │   ├── loading-spinner.css
+│   │   │   ├── skeleton-loader.css
+│   │   │   ├── typewriter.css
+│   │   │   ├── progress-bar.css
+│   │   │   ├── ripple.css
+│   │   │   ├── confetti.css
+│   │   │   ├── wave.css
+│   │   │   └── gradient-shift.css
+│   │   ├── layouts/
+│   │   │   ├── grid-system.css
+│   │   │   ├── flexbox-helpers.css
+│   │   │   ├── sidebar-layout.css
+│   │   │   ├── split-pane.css
+│   │   │   ├── sticky-header.css
+│   │   │   ├── responsive-breakpoints.css
+│   │   │   ├── container.css
+│   │   │   ├── panel.css
+│   │   │   ├── modal-overlay.css
+│   │   │   └── drawer.css
+│   │   └── vendor/
+│   │       ├── codemirror-theme.css
+│   │       ├── markdown-preview.css
+│   │       ├── syntax-highlight.css
+│   │       ├── data-table-base.css
+│   │       └── chart-container.css
+│   │
+│   ├── components/             # ===== 组件文件 (120+ files) =====
+│   │   ├── ui/                 # 基础 UI 组件 (40 files)
+│   │   │   ├── Button/
+│   │   │   │   ├── Button.tsx
+│   │   │   │   ├── Button.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Input/
+│   │   │   │   ├── Input.tsx
+│   │   │   │   ├── Input.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Select/
+│   │   │   │   ├── Select.tsx
+│   │   │   │   ├── Select.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Dialog/
+│   │   │   │   ├── Dialog.tsx
+│   │   │   │   ├── Dialog.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Dropdown/
+│   │   │   │   ├── Dropdown.tsx
+│   │   │   │   ├── Dropdown.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Tooltip/
+│   │   │   │   ├── Tooltip.tsx
+│   │   │   │   ├── Tooltip.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Tabs/
+│   │   │   │   ├── Tabs.tsx
+│   │   │   │   ├── Tabs.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Badge/
+│   │   │   │   ├── Badge.tsx
+│   │   │   │   ├── Badge.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Card/
+│   │   │   │   ├── Card.tsx
+│   │   │   │   ├── Card.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Alert/
+│   │   │   │   ├── Alert.tsx
+│   │   │   │   ├── Alert.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Avatar/
+│   │   │   │   ├── Avatar.tsx
+│   │   │   │   ├── Avatar.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Switch/
+│   │   │   │   ├── Switch.tsx
+│   │   │   │   ├── Switch.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Slider/
+│   │   │   │   ├── Slider.tsx
+│   │   │   │   ├── Slider.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Checkbox/
+│   │   │   │   ├── Checkbox.tsx
+│   │   │   │   ├── Checkbox.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Radio/
+│   │   │   │   ├── Radio.tsx
+│   │   │   │   ├── Radio.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Textarea/
+│   │   │   │   ├── Textarea.tsx
+│   │   │   │   ├── Textarea.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Label/
+│   │   │   │   ├── Label.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── Separator/
+│   │   │   │   ├── Separator.tsx
+│   │   │   │   ├── Separator.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── ScrollArea/
+│   │   │   │   ├── ScrollArea.tsx
+│   │   │   │   ├── ScrollArea.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Skeleton/
+│   │   │   │   ├── Skeleton.tsx
+│   │   │   │   ├── Skeleton.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Progress/
+│   │   │   │   ├── Progress.tsx
+│   │   │   │   ├── Progress.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Spinner/
+│   │   │   │   ├── Spinner.tsx
+│   │   │   │   ├── Spinner.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Toast/
+│   │   │   │   ├── Toast.tsx
+│   │   │   │   ├── Toast.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Breadcrumb/
+│   │   │   │   ├── Breadcrumb.tsx
+│   │   │   │   ├── Breadcrumb.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── Pagination/
+│   │   │   │   ├── Pagination.tsx
+│   │   │   │   ├── Pagination.module.css
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts          # 统一导出
+│   │   │
+│   │   ├── chat/               # 聊天组件 (Claude样式, 20 files)
+│   │   │   ├── ChatContainer/
+│   │   │   │   ├── ChatContainer.tsx
+│   │   │   │   ├── ChatContainer.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── ChatInput/
+│   │   │   │   ├── ChatInput.tsx
+│   │   │   │   ├── ChatInput.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── ChatMessage/
+│   │   │   │   ├── ChatMessage.tsx
+│   │   │   │   ├── ChatMessage.module.css
+│   │   │   │   ├── UserMessage.tsx
+│   │   │   │   ├── AssistantMessage.tsx
+│   │   │   │   ├── SystemMessage.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── ChatHistory/
+│   │   │   │   ├── ChatHistory.tsx
+│   │   │   │   ├── ChatHistory.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── ChatSidebar/
+│   │   │   │   ├── ChatSidebar.tsx
+│   │   │   │   ├── ChatSidebar.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── ToolCallDisplay/
+│   │   │   │   ├── ToolCallDisplay.tsx
+│   │   │   │   ├── ToolCallDisplay.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── CodeBlock/
+│   │   │   │   ├── CodeBlock.tsx
+│   │   │   │   ├── CodeBlock.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── MarkdownRenderer/
+│   │   │   │   ├── MarkdownRenderer.tsx
+│   │   │   │   ├── MarkdownRenderer.module.css
+│   │   │   │   └── index.ts
+│   │   │   └── StreamingText/
+│   │   │       ├── StreamingText.tsx
+│   │   │       ├── StreamingText.module.css
+│   │   │       └── index.ts
+│   │   │
+│   │   ├── agent/              # Agent 相关组件 (15 files)
+│   │   │   ├── AgentLoop/
+│   │   │   │   ├── AgentLoop.tsx
+│   │   │   │   ├── AgentLoop.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── ToolExecution/
+│   │   │   │   ├── ToolExecution.tsx
+│   │   │   │   ├── ToolExecution.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── SubagentPanel/
+│   │   │   │   ├── SubagentPanel.tsx
+│   │   │   │   ├── SubagentPanel.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── TaskProgress/
+│   │   │   │   ├── TaskProgress.tsx
+│   │   │   │   ├── TaskProgress.module.css
+│   │   │   │   └── index.ts
+│   │   │   └── BashTerminal/
+│   │   │       ├── BashTerminal.tsx
+│   │   │       ├── BashTerminal.module.css
+│   │   │       └── index.ts
+│   │   │
+│   │   ├── data-table/         # 数据表格 (15 files)
+│   │   │   ├── DataTable.tsx
+│   │   │   ├── DataTable.module.css
+│   │   │   ├── TableHeader.tsx
+│   │   │   ├── TableRow.tsx
+│   │   │   ├── TableCell.tsx
+│   │   │   ├── TablePagination.tsx
+│   │   │   ├── TableFilters.tsx
+│   │   │   ├── TableSort.tsx
+│   │   │   ├── ColumnResizer.tsx
+│   │   │   ├── ColumnSummary.tsx
+│   │   │   ├── CellStyling.tsx
+│   │   │   ├── VirtualScroll.tsx
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── editor/             # 编辑器组件 (12 files)
+│   │   │   ├── CodeEditor/
+│   │   │   │   ├── CodeEditor.tsx
+│   │   │   │   ├── CodeEditor.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── OutputArea/
+│   │   │   │   ├── OutputArea.tsx
+│   │   │   │   ├── OutputArea.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── CellActions/
+│   │   │   │   ├── CellActions.tsx
+│   │   │   │   ├── CellActions.module.css
+│   │   │   │   └── index.ts
+│   │   │   └── TerminalOutput/
+│   │   │       ├── TerminalOutput.tsx
+│   │   │       ├── TerminalOutput.module.css
+│   │   │       └── index.ts
+│   │   │
+│   │   └── layout/             # 布局组件 (18 files)
+│   │       ├── Sidebar/
+│   │       │   ├── Sidebar.tsx
+│   │       │   ├── Sidebar.module.css
+│   │       │   └── index.ts
+│   │       ├── Header/
+│   │       │   ├── Header.tsx
+│   │       │   ├── Header.module.css
+│   │       │   └── index.ts
+│   │       ├── MainLayout/
+│   │       │   ├── MainLayout.tsx
+│   │       │   ├── MainLayout.module.css
+│   │       │   └── index.ts
+│   │       ├── PanelResizer/
+│   │       │   ├── PanelResizer.tsx
+│   │       │   ├── PanelResizer.module.css
+│   │       │   └── index.ts
+│   │       ├── Footer/
+│   │       │   ├── Footer.tsx
+│   │       │   ├── Footer.module.css
+│   │       │   └── index.ts
+│   │       └── StatusBar/
+│   │           ├── StatusBar.tsx
+│   │           ├── StatusBar.module.css
+│   │           └── index.ts
+│   │
+│   ├── core/                   # ===== 核心逻辑 (40 files) =====
+│   │   ├── state/              # Jotai 状态管理
+│   │   │   ├── atoms/
+│   │   │   │   ├── chat-atoms.ts
+│   │   │   │   ├── agent-atoms.ts
+│   │   │   │   ├── ui-atoms.ts
+│   │   │   │   ├── config-atoms.ts
+│   │   │   │   ├── auth-atoms.ts
+│   │   │   │   └── workspace-atoms.ts
+│   │   │   ├── selectors/
+│   │   │   │   ├── chat-selectors.ts
+│   │   │   │   ├── agent-selectors.ts
+│   │   │   │   └── ui-selectors.ts
+│   │   │   └── store.ts
+│   │   ├── config/
+│   │   │   ├── config-schema.ts     # Zod schemas
+│   │   │   ├── feature-flags.ts
+│   │   │   ├── app-config.ts
+│   │   │   └── env.ts
+│   │   ├── network/
+│   │   │   ├── websocket-client.ts  # WebSocket 连接
+│   │   │   ├── api-client.ts        # REST API
+│   │   │   ├── requests.ts
+│   │   │   ├── interceptors.ts
+│   │   │   └── types.ts
+│   │   ├── agent/
+│   │   │   ├── agent-loop.ts        # Agent 循环逻辑 (参考 v0-v4)
+│   │   │   ├── tool-executor.ts     # 工具执行器
+│   │   │   ├── subagent-manager.ts  # 子 agent 管理
+│   │   │   ├── message-parser.ts    # 消息解析
+│   │   │   └── stream-handler.ts    # 流式响应处理
+│   │   └── utils/
+│   │       ├── cn.ts                # className 工具
+│   │       ├── format.ts
+│   │       ├── date.ts
+│   │       ├── storage.ts
+│   │       ├── debounce.ts
+│   │       └── throttle.ts
+│   │
+│   ├── plugins/                # ===== 插件系统 (25 files) =====
+│   │   ├── core/
+│   │   │   ├── builder.ts           # createPlugin() 模式
+│   │   │   ├── registry.ts          # 插件注册
+│   │   │   ├── types.ts
+│   │   │   └── lifecycle.ts
+│   │   ├── impl/
+│   │   │   ├── data-table/
+│   │   │   │   ├── DataTablePlugin.tsx
+│   │   │   │   ├── DataTablePlugin.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── chart/
+│   │   │   │   ├── ChartPlugin.tsx
+│   │   │   │   ├── ChartPlugin.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── markdown/
+│   │   │   │   ├── MarkdownPlugin.tsx
+│   │   │   │   ├── MarkdownPlugin.module.css
+│   │   │   │   └── index.ts
+│   │   │   ├── code/
+│   │   │   │   ├── CodePlugin.tsx
+│   │   │   │   ├── CodePlugin.module.css
+│   │   │   │   └── index.ts
+│   │   │   └── file-viewer/
+│   │   │       ├── FileViewerPlugin.tsx
+│   │   │       ├── FileViewerPlugin.module.css
+│   │   │       └── index.ts
+│   │   └── index.ts
+│   │
+│   ├── hooks/                  # ===== 自定义 Hooks (20 files) =====
+│   │   ├── useWebSocket.ts
+│   │   ├── useChat.ts
+│   │   ├── useAgent.ts
+│   │   ├── useAsyncData.ts
+│   │   ├── useTheme.ts
+│   │   ├── useLocalStorage.ts
+│   │   ├── useMediaQuery.ts
+│   │   ├── useDebounce.ts
+│   │   ├── useIntersectionObserver.ts
+│   │   ├── useKeyboardShortcut.ts
+│   │   ├── useCopyToClipboard.ts
+│   │   ├── useScrollPosition.ts
+│   │   ├── useResizeObserver.ts
+│   │   ├── useEventSource.ts
+│   │   ├── useStreamingResponse.ts
+│   │   ├── useToolExecution.ts
+│   │   ├── usePagination.ts
+│   │   ├── useVirtualScroll.ts
+│   │   ├── useWindowSize.ts
+│   │   └── index.ts
+│   │
+│   ├── pages/                  # ===== 页面 (15 files) =====
+│   │   ├── Home/
+│   │   │   ├── Home.tsx
+│   │   │   ├── Home.module.css
+│   │   │   └── index.ts
+│   │   ├── Chat/
+│   │   │   ├── ChatPage.tsx
+│   │   │   ├── ChatPage.module.css
+│   │   │   └── index.ts
+│   │   ├── Workspace/
+│   │   │   ├── Workspace.tsx
+│   │   │   ├── Workspace.module.css
+│   │   │   └── index.ts
+│   │   ├── Settings/
+│   │   │   ├── Settings.tsx
+│   │   │   ├── Settings.module.css
+│   │   │   └── index.ts
+│   │   └── NotFound/
+│   │       ├── NotFound.tsx
+│   │       └── index.ts
+│   │
+│   ├── types/                  # ===== 类型定义 (15 files) =====
+│   │   ├── chat.ts
+│   │   ├── agent.ts
+│   │   ├── message.ts
+│   │   ├── tool.ts
+│   │   ├── config.ts
+│   │   ├── workspace.ts
+│   │   ├── user.ts
+│   │   ├── plugin.ts
+│   │   ├── theme.ts
+│   │   ├── api-response.ts
+│   │   ├── websocket.ts
+│   │   ├── table.ts
+│   │   ├── editor.ts
+│   │   ├── common.ts
+│   │   └── index.ts
+│   │
+│   ├── lib/                    # ===== 工具库 (10 files) =====
+│   │   ├── cn.ts               # Tailwind class merge
+│   │   ├── api.ts
+│   │   ├── validators.ts
+│   │   ├── formatters.ts
+│   │   ├── constants.ts
+│   │   ├── errors.ts
+│   │   ├── logger.ts
+│   │   ├── event-emitter.ts
+│   │   ├── markdown-utils.ts
+│   │   └── index.ts
+│   │
+│   └── assets/                 # ===== 静态资源 (10 files) =====
+│       ├── icons/
+│       │   ├── logo.svg
+│       │   ├── agent.svg
+│       │   ├── tool.svg
+│       │   └── terminal.svg
+│       └── images/
+│           ├── placeholder.png
+│           └── empty-state.svg
+│
+├── index.html
+├── package.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── vite.config.ts
+├── tailwind.config.js
+├── postcss.config.js
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+├── Makefile
+├── checklistFronted.md
+├── plan.md
+├── SKILL.md
+├── claudeFrontStyleDemo.md
+└── README.md
+```
+
+**文件统计**:
+| 类别 | 文件数 |
+|------|--------|
+| 样式文件 (CSS/module.css) | ~115 |
+| 组件文件 (TSX) | ~90 |
+| 核心逻辑 (TS) | ~40 |
+| 类型定义 (TS) | ~15 |
+| Hooks (TS) | ~20 |
+| 插件 (TSX+TS) | ~25 |
+| 页面 (TSX) | ~15 |
+| 配置/工具 (TS) | ~10 |
+| 资源文件 | ~15 |
+| 项目配置文件 | ~15 |
+| **总计** | **~360** |
+
+---
+
+## 第三步: 从 marimo 项目复制文件的具体命令
+
+在服务器 `root@iZ7xv051npomtfakwd4555Z` 上执行:
+
+```bash
+# 1. 确认 marimo 源码位置
+ls /root/dylan/skynetCheapBuy/marimo/frontend/src/
+
+# 2. 复制核心 CSS 文件
+mkdir -p /root/dylan/skynetCheapBuy/skynetFronted/src/styles/{base,themes,animations,layouts,vendor}
+
+# 从 marimo 复制主题相关 CSS
+cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/css/* \
+      /root/dylan/skynetCheapBuy/skynetFronted/src/styles/ 2>/dev/null
+
+# 3. 复制组件基础
+cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/components/ui/ \
+      /root/dylan/skynetCheapBuy/skynetFronted/src/components/ui/ 2>/dev/null
+
+# 4. 复制核心逻辑
+cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/core/ \
+      /root/dylan/skynetCheapBuy/skynetFronted/src/core/ 2>/dev/null
+
+# 5. 复制插件系统
+cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/plugins/ \
+      /root/dylan/skynetCheapBuy/skynetFronted/src/plugins/ 2>/dev/null
+
+# 6. 复制 hooks
+cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/hooks/ \
+      /root/dylan/skynetCheapBuy/skynetFronted/src/hooks/ 2>/dev/null
+```
+
+---
+
+## 第四步: 开发顺序 (优先级)
+
+### Phase 1: 基础架构搭建 (Day 1-2)
+1. 安装 npm 依赖
+2. 搭建 styles/ 主题系统 (CSS 变量, 明暗主题)
+3. 搭建 core/state/ Jotai 状态管理
+4. 搭建 core/network/ WebSocket + API 客户端
+5. 从 marimo 适配 UI 基础组件
+
+### Phase 2: 聊天界面 (Day 3-5) — 类 Claude 样式
+1. ChatContainer 主布局
+2. ChatMessage (用户消息 + AI 消息 + 流式输出)
+3. ChatInput (输入框 + 文件上传 + 快捷键)
+4. ChatSidebar (历史记录)
+5. MarkdownRenderer + CodeBlock
+
+### Phase 3: Agent 可视化 (Day 6-8)
+1. AgentLoop 组件 (展示 tool_use → tool_result 循环)
+2. ToolExecution 显示 (bash 命令执行可视化)
+3. SubagentPanel (子 agent 递归展示)
+4. BashTerminal 终端模拟
+5. TaskProgress 任务进度
+
+### Phase 4: 数据展示 (Day 9-10)
+1. DataTable 组件 (TanStack Table)
+2. Chart 插件 (Recharts)
+3. CodeEditor (CodeMirror)
+4. FileViewer
+
+### Phase 5: 插件系统 + 打磨 (Day 11-14)
+1. Plugin builder + registry
+2. 响应式适配
+3. 动画/微交互
+4. 性能优化 (虚拟滚动, 懒加载)
+5. Docker 构建 + 部署
+
+---
+
+## 第五步: 与 skynetCheapBuy 后端对接
+
+### API 端点 (基于 skynetCheapBuy 的 FastAPI)
+```
+POST /api/chat          # 发送消息
+GET  /api/chat/history  # 获取聊天历史
+WS   /ws/chat           # WebSocket 实时通信
+
+POST /api/agent/execute # 执行 agent 任务
+GET  /api/agent/status  # agent 状态
+GET  /api/agent/logs    # agent 日志
+
+GET  /api/workspace/files  # 文件列表
+GET  /api/workspace/file   # 文件内容
+```
+
+### WebSocket 消息格式 (参考 Claude Code v0 agent loop)
+```typescript
+// 客户端 → 服务端
+{ type: "chat_message", content: string, tools?: Tool[] }
+
+// 服务端 → 客户端 (流式)
+{ type: "text_delta", delta: string }
+{ type: "tool_use", id: string, name: string, input: object }
+{ type: "tool_result", tool_use_id: string, content: string }
+{ type: "message_stop" }
+```
+
+---
+
+## 关键参考链接
+
+| 资源 | 用途 |
+|------|------|
+| `marimo/frontend/src/components/` | UI 组件架构 |
+| `marimo/frontend/src/core/` | 状态管理 + 网络层 |
+| `marimo/frontend/src/plugins/` | 插件系统 |
+| `marimo/frontend/src/hooks/` | React Hooks |
+| Claude Code v0-v4 Agent Loop | Agent 循环 UI 展示逻辑 |
+| `skynetCheapBuy/app/` | 后端 API 结构 |
+| `skynetCheapBuy/claude_code.py` | Agent 核心逻辑 |
+
+---
+
+## 注意事项
+
+1. **不要只看 README** — skynetCheapBuy 已迭代 5+ 版本 (22次提交), skynetFronted 有 13次提交, 需要看实际代码文件而非仅看 README
+2. **专注两个库** — 只关注 `dylanyunlon/skynetCheapBuy` 和 `dylanyunlon/skynetFronted`, 不掺和其他 GitHub 库
+3. **marimo 前端是参考** — 核心是复制其 CSS/组件架构思路, 不是整个搬运
+4. **300+ 文件目标** — 通过 CSS modules + 组件拆分 + hooks + 类型定义实现
+5. **Claude 网页样式** — 最终展示效果要接近 Claude 网页端的交互体验
