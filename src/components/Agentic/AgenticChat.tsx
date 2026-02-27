@@ -56,22 +56,21 @@ const ToolIcon: React.FC<{ tool: string; className?: string }> = ({ tool, classN
 };
 
 // ============================================================
-// Web Search 结果列表
+// Web Search 结果列表 — Claude Code 风格三行卡片
 // ============================================================
 const WebSearchResults: React.FC<{ meta: ToolResultMeta }> = ({ meta }) => {
   if (!meta.result_titles?.length) return null;
   return (
-    <div className="mt-2 space-y-1.5">
-      <div className="text-xs text-gray-400 font-medium">{meta.results_count} results</div>
+    <div className="mt-2 space-y-2">
+      <div className="text-xs text-gray-400 font-medium">{meta.results_count ?? meta.result_titles.length} results</div>
       {meta.result_titles.map((r, i) => (
-        <div key={i} className="flex items-start gap-2 text-xs">
-          <span className="text-blue-400 shrink-0 mt-0.5">•</span>
-          <div className="min-w-0">
-            <a href={r.url} target="_blank" rel="noopener noreferrer"
-               className="text-blue-400 hover:underline truncate block font-medium">
-              {r.title || r.url}
-            </a>
-            {r.domain && <span className="text-gray-500 text-[10px]">{r.domain}</span>}
+        <div key={i} className="border border-gray-700/30 rounded-md px-2.5 py-2 hover:bg-gray-800/30 transition-colors">
+          <a href={r.url} target="_blank" rel="noopener noreferrer"
+             className="text-blue-400 hover:underline text-xs font-medium block truncate">
+            {r.title || r.url}
+          </a>
+          <div className="text-[10px] text-green-500/70 mt-0.5 truncate">
+            {r.domain || (() => { try { return new URL(r.url).hostname; } catch { return r.url; } })()}
           </div>
         </div>
       ))}
@@ -126,14 +125,67 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   const tool = block.tool || '';
   const toolInfo = TOOL_DISPLAY[tool] || { label: tool, icon: '⚙️', color: 'text-gray-400' };
   const isLoading = block.toolResult === undefined;
-  const description = block.toolDescription || toolInfo.label;
+  const meta = block.toolResultMeta;
 
-  const hasDiff = block.toolDiff || block.toolResultMeta?.added_lines || block.toolResultMeta?.removed_lines;
+  // ── TASK-01~04: Claude Code 风格动态标题生成 ──
+  const buildDisplayTitle = (): { title: string; subtitle?: string } => {
+    // TASK-01: batch_commands → "Ran N commands"
+    if (tool === 'batch_commands') {
+      const n = meta?.total_commands ?? meta?.executed ?? meta?.results?.length ?? 0;
+      return { title: `Ran ${n} command${n !== 1 ? 's' : ''}` };
+    }
+    // TASK-02: batch_read → "Viewed N files"
+    if (tool === 'batch_read') {
+      const n = meta?.files_read ?? 0;
+      return { title: `Viewed ${n} file${n !== 1 ? 's' : ''}` };
+    }
+    // TASK-03: web_search → "Searched the web" + query subtitle + "N results"
+    if (tool === 'web_search') {
+      const query = meta?.query || block.toolArgs?.query || '';
+      const count = meta?.results_count ?? meta?.result_titles?.length ?? 0;
+      const truncQuery = query.length > 60 ? query.substring(0, 57) + '...' : query;
+      return {
+        title: 'Searched the web',
+        subtitle: truncQuery ? `${truncQuery}` : undefined,
+      };
+    }
+    // TASK-04: web_fetch → "Fetched: [page title]"
+    if (tool === 'web_fetch') {
+      const pageTitle = meta?.title || meta?.display_title;
+      if (pageTitle) return { title: `Fetched: ${pageTitle}` };
+      const url = meta?.url || block.toolArgs?.url || '';
+      if (url) {
+        try { return { title: `Fetched: ${new URL(url).hostname}${new URL(url).pathname.substring(0, 40)}` }; } catch {}
+      }
+      return { title: 'Fetched page' };
+    }
+    // view_truncated → "View truncated section of [filename]"
+    if (tool === 'view_truncated') {
+      const fname = meta?.filename || block.toolArgs?.path?.split('/').pop() || '';
+      return { title: fname ? `View truncated section of ${fname}` : 'View truncated section' };
+    }
+    // read_file → "View [filename]"
+    if (tool === 'read_file') {
+      const fname = meta?.filename || block.toolArgs?.path?.split('/').pop() || '';
+      return { title: fname ? `View ${fname}` : (block.toolDescription || toolInfo.label) };
+    }
+    // Default: use description or tool label
+    return { title: block.toolDescription || toolInfo.label };
+  };
+
+  const { title: displayTitle, subtitle: displaySubtitle } = buildDisplayTitle();
+
+  // web_search 结果数量标记
+  const searchResultCount = (tool === 'web_search' && !isLoading)
+    ? (meta?.results_count ?? meta?.result_titles?.length ?? 0)
+    : 0;
+
+  const hasDiff = block.toolDiff || meta?.added_lines || meta?.removed_lines;
   const editStats = hasDiff ? (
     <span className="ml-2 text-xs">
-      {block.toolResultMeta?.filename && <span className="text-gray-400">{block.toolResultMeta.filename}</span>}
-      {(block.toolResultMeta?.added_lines ?? 0) > 0 && <span className="text-green-400 ml-1">+{block.toolResultMeta?.added_lines}</span>}
-      {(block.toolResultMeta?.removed_lines ?? 0) > 0 && <span className="text-red-400 ml-1">-{block.toolResultMeta?.removed_lines}</span>}
+      {meta?.filename && <span className="text-gray-400">{meta.filename}</span>}
+      {(meta?.added_lines ?? 0) > 0 && <span className="text-green-400 ml-1">+{meta?.added_lines}</span>}
+      {(meta?.removed_lines ?? 0) > 0 && <span className="text-red-400 ml-1">-{meta?.removed_lines}</span>}
     </span>
   ) : null;
 
@@ -148,7 +200,13 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
           ? <ChevronDown className="w-3.5 h-3.5 text-gray-500 shrink-0" />
           : <ChevronRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />}
         <ToolIcon tool={tool} className={toolInfo.color} />
-        <span className="text-sm text-gray-200 font-medium truncate">{description}</span>
+        <span className="text-sm text-gray-200 font-medium truncate">{displayTitle}</span>
+        {/* TASK-03: web_search 结果数量 badge */}
+        {searchResultCount > 0 && (
+          <span className="text-[11px] text-cyan-400/80 bg-cyan-900/20 px-1.5 py-0.5 rounded font-medium shrink-0">
+            {searchResultCount} results
+          </span>
+        )}
         {editStats}
         {isLoading && <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin ml-auto shrink-0" />}
         {!isLoading && block.toolSuccess === true && <CheckCircle className="w-3.5 h-3.5 text-green-400 ml-auto shrink-0" />}
@@ -158,9 +216,20 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
         )}
       </div>
 
+      {/* TASK-03: web_search 查询词副标题 (折叠状态也可见) */}
+      {tool === 'web_search' && displaySubtitle && !expanded && (
+        <div className="px-3 pb-1.5 -mt-1 text-xs text-gray-500 truncate pl-10">
+          {displaySubtitle}
+        </div>
+      )}
+
       {/* Expanded content */}
       {expanded && (
         <div className="border-t border-gray-700/30 px-3 py-2 text-xs font-mono max-h-64 overflow-y-auto bg-gray-900/40">
+          {/* TASK-06 (bonus): 描述文本 — 如果 toolDescription 与 displayTitle 不同则额外显示 */}
+          {block.toolDescription && block.toolDescription !== displayTitle && (
+            <div className="text-gray-400 mb-2 font-sans text-[11px] italic">{block.toolDescription}</div>
+          )}
           {block.toolArgs && (
             <div className="mb-2">
               {tool === 'bash' && block.toolArgs.command && (
@@ -176,7 +245,20 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
                 <div className="text-gray-400">File: {block.toolArgs.path}</div>
               )}
               {tool === 'web_search' && block.toolArgs.query && (
-                <div className="text-cyan-300/80">Query: {block.toolArgs.query}</div>
+                <div className="text-cyan-300/80 font-medium">🔍 {block.toolArgs.query}</div>
+              )}
+              {/* TASK-04: web_fetch URL display */}
+              {tool === 'web_fetch' && (block.toolArgs?.url || meta?.url) && (
+                <div className="text-cyan-300/70 truncate">
+                  {block.toolArgs?.url || meta?.url}
+                </div>
+              )}
+              {/* TASK-07 (bonus): view_truncated 行号指示器 */}
+              {tool === 'view_truncated' && (meta?.truncated_range || meta?.total_lines) && (
+                <div className="text-blue-300/70 flex items-center gap-2">
+                  {meta?.truncated_range && <span>Lines {meta.truncated_range}</span>}
+                  {meta?.total_lines && <span className="text-gray-500">of {meta.total_lines} total</span>}
+                </div>
               )}
             </div>
           )}
@@ -191,11 +273,11 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
               ))}
             </pre>
           )}
-          {tool === 'web_search' && block.toolResultMeta && (
-            <WebSearchResults meta={block.toolResultMeta} />
+          {tool === 'web_search' && meta && (
+            <WebSearchResults meta={meta} />
           )}
-          {tool === 'batch_commands' && block.toolResultMeta && (
-            <BatchCommandsResults meta={block.toolResultMeta} />
+          {tool === 'batch_commands' && meta && (
+            <BatchCommandsResults meta={meta} />
           )}
           {block.toolResult && !block.toolDiff && tool !== 'web_search' && tool !== 'batch_commands' && (
             <pre className="text-gray-400 whitespace-pre-wrap break-words">
@@ -203,8 +285,8 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
               {(block.toolResult.length > 2000) && '\n...[truncated]'}
             </pre>
           )}
-          {block.toolResultMeta?.hint && (
-            <div className="mt-1 text-blue-400 text-[10px] italic">{block.toolResultMeta.hint}</div>
+          {meta?.hint && (
+            <div className="mt-1 text-blue-400 text-[10px] italic">{meta.hint}</div>
           )}
         </div>
       )}
@@ -213,11 +295,48 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 };
 
 // ============================================================
-// Turn Summary 块
+// Turn Summary 块 — TASK-05: Claude Code 风格格式对齐
 // ============================================================
 const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   const [expanded, setExpanded] = useState(false);
   const items = block.detailItems || [];
+  const summary = block.summary;
+
+  // TASK-05: 生成 Claude Code 风格聚合标题
+  // 格式: "Ran N commands, viewed M files, edited K files"
+  const buildClaudeStyleTitle = (): string => {
+    if (!summary) return block.display || 'Done';
+
+    const parts: string[] = [];
+    const cmds = summary.commands_run ?? 0;
+    const viewed = summary.files_viewed ?? 0;
+    const edited = summary.files_edited ?? 0;
+    const created = summary.files_created ?? 0;
+    const webSearches = summary.searches_web ?? 0;
+    const codeSearches = summary.searches_code ?? 0;
+    const fetched = summary.pages_fetched ?? 0;
+    const reverts = summary.reverts ?? 0;
+    const tests = summary.tests_run ?? 0;
+    const subagents = summary.subagents_launched ?? 0;
+
+    if (cmds > 0) parts.push(`Ran ${cmds} command${cmds !== 1 ? 's' : ''}`);
+    if (viewed > 0) parts.push(`viewed ${viewed} file${viewed !== 1 ? 's' : ''}`);
+    if (edited > 0) parts.push(`edited ${edited} file${edited !== 1 ? 's' : ''}`);
+    if (created > 0) parts.push(`created ${created} file${created !== 1 ? 's' : ''}`);
+    if (webSearches > 0) parts.push(`searched the web`);
+    if (codeSearches > 0) parts.push(`searched code ${codeSearches} time${codeSearches !== 1 ? 's' : ''}`);
+    if (fetched > 0) parts.push(`fetched ${fetched} page${fetched !== 1 ? 's' : ''}`);
+    if (reverts > 0) parts.push(`reverted ${reverts} change${reverts !== 1 ? 's' : ''}`);
+    if (tests > 0) parts.push(`ran ${tests} test${tests !== 1 ? 's' : ''}`);
+    if (subagents > 0) parts.push(`launched ${subagents} sub-agent${subagents !== 1 ? 's' : ''}`);
+
+    if (parts.length === 0) return block.display || 'Done';
+
+    // 首字母大写第一部分，其余小写用逗号连接
+    return parts.join(', ');
+  };
+
+  const claudeTitle = buildClaudeStyleTitle();
 
   return (
     <div className="my-2 border-l-2 border-gray-600/50 pl-3">
@@ -228,7 +347,11 @@ const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
         {expanded
           ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
           : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
-        <span className="text-sm text-gray-300 font-medium">{block.display || 'Done'}</span>
+        <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+        <span className="text-sm text-gray-300 font-medium">{claudeTitle}</span>
+        {summary?.task_completed && (
+          <span className="text-[10px] text-green-500 ml-1">Done</span>
+        )}
       </div>
       {expanded && items.length > 0 && (
         <div className="mt-1.5 space-y-1 ml-5">
