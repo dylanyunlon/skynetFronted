@@ -1307,57 +1307,6 @@ skynetFronted/
 │   ├── App.tsx                 # 根组件
 │   ├── vite-env.d.ts
 │   │
-│   ├── styles/                 # ===== 样式文件 (65 files) =====
-│   │   ├── base/
-│   │   │   ├── reset.css
-│   │   │   ├── normalize.css
-│   │   │   ├── global.css
-│   │   │   ├── typography.css
-│   │   │   └── utilities.css
-│   │   ├── themes/
-│   │   │   ├── variables.css
-│   │   │   ├── light.css
-│   │   │   ├── dark.css
-│   │   │   ├── colors.css
-│   │   │   ├── spacing.css
-│   │   │   ├── shadows.css
-│   │   │   ├── borders.css
-│   │   │   ├── z-index.css
-│   │   │   └── breakpoints.css
-│   │   ├── animations/
-│   │   │   ├── fade.css
-│   │   │   ├── slide.css
-│   │   │   ├── scale.css
-│   │   │   ├── rotate.css
-│   │   │   ├── bounce.css
-│   │   │   ├── shake.css
-│   │   │   ├── pulse.css
-│   │   │   ├── loading-spinner.css
-│   │   │   ├── skeleton-loader.css
-│   │   │   ├── typewriter.css
-│   │   │   ├── progress-bar.css
-│   │   │   ├── ripple.css
-│   │   │   ├── confetti.css
-│   │   │   ├── wave.css
-│   │   │   └── gradient-shift.css
-│   │   ├── layouts/
-│   │   │   ├── grid-system.css
-│   │   │   ├── flexbox-helpers.css
-│   │   │   ├── sidebar-layout.css
-│   │   │   ├── split-pane.css
-│   │   │   ├── sticky-header.css
-│   │   │   ├── responsive-breakpoints.css
-│   │   │   ├── container.css
-│   │   │   ├── panel.css
-│   │   │   ├── modal-overlay.css
-│   │   │   └── drawer.css
-│   │   └── vendor/
-│   │       ├── codemirror-theme.css
-│   │       ├── markdown-preview.css
-│   │       ├── syntax-highlight.css
-│   │       ├── data-table-base.css
-│   │       └── chart-container.css
-│   │
 │   ├── components/             # ===== 组件文件 (120+ files) =====
 │   │   ├── ui/                 # 基础 UI 组件 (40 files)
 │   │   │   ├── Button/
@@ -1524,20 +1473,6 @@ skynetFronted/
 │   │   │       ├── BashTerminal.module.css
 │   │   │       └── index.ts
 │   │   │
-│   │   ├── data-table/         # 数据表格 (15 files)
-│   │   │   ├── DataTable.tsx
-│   │   │   ├── DataTable.module.css
-│   │   │   ├── TableHeader.tsx
-│   │   │   ├── TableRow.tsx
-│   │   │   ├── TableCell.tsx
-│   │   │   ├── TablePagination.tsx
-│   │   │   ├── TableFilters.tsx
-│   │   │   ├── TableSort.tsx
-│   │   │   ├── ColumnResizer.tsx
-│   │   │   ├── ColumnSummary.tsx
-│   │   │   ├── CellStyling.tsx
-│   │   │   ├── VirtualScroll.tsx
-│   │   │   └── index.ts
 │   │   │
 │   │   ├── editor/             # 编辑器组件 (12 files)
 │   │   │   ├── CodeEditor/
@@ -1751,72 +1686,13 @@ skynetFronted/
 └── README.md
 ```
 
-**文件统计**:
-| 类别 | 文件数 |
-|------|--------|
-| 样式文件 (CSS/module.css) | ~115 |
-| 组件文件 (TSX) | ~90 |
-| 核心逻辑 (TS) | ~40 |
-| 类型定义 (TS) | ~15 |
-| Hooks (TS) | ~20 |
-| 插件 (TSX+TS) | ~25 |
-| 页面 (TSX) | ~15 |
-| 配置/工具 (TS) | ~10 |
-| 资源文件 | ~15 |
-| 项目配置文件 | ~15 |
-| **总计** | **~360** |
-
----
-
-## 第三步: 从 marimo 项目复制文件的具体命令
-
-在服务器 `root@iZ7xv051npomtfakwd4555Z` 上执行:
-
-```bash
-# 1. 确认 marimo 源码位置
-ls /root/dylan/skynetCheapBuy/marimo/frontend/src/
-
-# 2. 复制核心 CSS 文件
-mkdir -p /root/dylan/skynetCheapBuy/skynetFronted/src/styles/{base,themes,animations,layouts,vendor}
-
-# 从 marimo 复制主题相关 CSS
-cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/css/* \
-      /root/dylan/skynetCheapBuy/skynetFronted/src/styles/ 2>/dev/null
-
-# 3. 复制组件基础
-cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/components/ui/ \
-      /root/dylan/skynetCheapBuy/skynetFronted/src/components/ui/ 2>/dev/null
-
-# 4. 复制核心逻辑
-cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/core/ \
-      /root/dylan/skynetCheapBuy/skynetFronted/src/core/ 2>/dev/null
-
-# 5. 复制插件系统
-cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/plugins/ \
-      /root/dylan/skynetCheapBuy/skynetFronted/src/plugins/ 2>/dev/null
-
-# 6. 复制 hooks
-cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/hooks/ \
-      /root/dylan/skynetCheapBuy/skynetFronted/src/hooks/ 2>/dev/null
-```
 
 ---
 
 ## 第四步: 开发顺序 (优先级)
 
 ### Phase 1: 基础架构搭建 (Day 1-2)
-1. 安装 npm 依赖
-2. 搭建 styles/ 主题系统 (CSS 变量, 明暗主题)
-3. 搭建 core/state/ Jotai 状态管理
-4. 搭建 core/network/ WebSocket + API 客户端
 5. 从 marimo 适配 UI 基础组件
-
-### Phase 2: 聊天界面 (Day 3-5) — 类 Claude 样式
-1. ChatContainer 主布局
-2. ChatMessage (用户消息 + AI 消息 + 流式输出)
-3. ChatInput (输入框 + 文件上传 + 快捷键)
-4. ChatSidebar (历史记录)
-5. MarkdownRenderer + CodeBlock
 
 ### Phase 3: Agent 可视化 (Day 6-8)
 1. AgentLoop 组件 (展示 tool_use → tool_result 循环)
@@ -1836,58 +1712,7 @@ cp -r /root/dylan/skynetCheapBuy/marimo/frontend/src/hooks/ \
 2. 响应式适配
 3. 动画/微交互
 4. 性能优化 (虚拟滚动, 懒加载)
-5. Docker 构建 + 部署
 
----
-
-## 第五步: 与 skynetCheapBuy 后端对接
-
-### API 端点 (基于 skynetCheapBuy 的 FastAPI)
-```
-POST /api/chat          # 发送消息
-GET  /api/chat/history  # 获取聊天历史
-WS   /ws/chat           # WebSocket 实时通信
-
-POST /api/agent/execute # 执行 agent 任务
-GET  /api/agent/status  # agent 状态
-GET  /api/agent/logs    # agent 日志
-
-GET  /api/workspace/files  # 文件列表
-GET  /api/workspace/file   # 文件内容
-```
-
-### WebSocket 消息格式 (参考 Claude Code v0 agent loop)
-```typescript
-// 客户端 → 服务端
-{ type: "chat_message", content: string, tools?: Tool[] }
-
-// 服务端 → 客户端 (流式)
-{ type: "text_delta", delta: string }
-{ type: "tool_use", id: string, name: string, input: object }
-{ type: "tool_result", tool_use_id: string, content: string }
-{ type: "message_stop" }
-```
-
----
-
-## 关键参考链接
-
-| 资源 | 用途 |
-|------|------|
-| `marimo/frontend/src/components/` | UI 组件架构 |
-| `marimo/frontend/src/core/` | 状态管理 + 网络层 |
-| `marimo/frontend/src/plugins/` | 插件系统 |
-| `marimo/frontend/src/hooks/` | React Hooks |
-| Claude Code v0-v4 Agent Loop | Agent 循环 UI 展示逻辑 |
-| `skynetCheapBuy/app/` | 后端 API 结构 |
-| `skynetCheapBuy/claude_code.py` | Agent 核心逻辑 |
-
----
-
-## 注意事项
 
 1. **不要只看 README** — skynetCheapBuy 已迭代 5+ 版本 (22次提交), skynetFronted 有 13次提交, 需要看实际代码文件而非仅看 README
-2. **专注两个库** — 只关注 `dylanyunlon/skynetCheapBuy` 和 `dylanyunlon/skynetFronted`, 不掺和其他 GitHub 库
-3. **marimo 前端是参考** — 核心是复制其 CSS/组件架构思路, 不是整个搬运
-4. **300+ 文件目标** — 通过 CSS modules + 组件拆分 + hooks + 类型定义实现
-5. **Claude 网页样式** — 最终展示效果要接近 Claude 网页端的交互体验
+3. **marimo 前端是可以直接复用** — 核心是复制其 CSS/组件架构思路,
