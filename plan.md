@@ -1736,3 +1736,150 @@ Phase 1.5 完成总结
 创建了 13 个 adapter/utility 文件 — cn.ts, Logger.ts, events.ts, numbers.ts, strings.ts, functions.ts, namespace.tsx, shortcuts.ts, is-in-vscode.ts, useDebounce.ts, useEventListener.ts, useBoolean.ts, index.ts
 Vite build 成功通过 — 1791 模块编译，输出 577KB JS + 85KB CSS
 53 个 marimo UI 组件 现在有了完整的依赖支持可以正常编译
+
+---
+
+## 05更新 (2026-02-28): Phase 4 — 数据展示组件完成
+
+### Phase 4 完成总结
+
+任务: 创建数据展示组件 (DataTable + Chart + CodeEditor + FileViewer) → ✅ 完成
+
+### 核心成果:
+
+新增 **50 个文件**，分布在 4 个新组件目录中 (739→789 文件):
+
+#### A. DataTable 组件 (`src/components/data-table/`) — 35 个文件
+参照 marimo `frontend/src/components/data-table/` 架构，创建了完整的子模块系统:
+
+| 子模块 | 文件 | 说明 |
+|--------|------|------|
+| `data-table.tsx` | 主组件 | TanStack Table 集成，排序/筛选/分页/行选择 |
+| `types.ts` | 类型定义 | ColumnName, FieldTypes, DataTableSelection 等 |
+| `utils.ts` | 工具函数 | formatCellValue, getFieldType, truncateString |
+| `filters.ts` | 筛选器 | filterToFilterCondition + 多种快捷创建函数 |
+| `schemas.ts` | Zod schemas | DownloadAsSchema, ColumnFilterSchema, TableConfigSchema |
+| `cell-selection/` | 单元格选择 | CellSelectionState + toggle/clear/count 操作 |
+| `cell-styling/` | 单元格样式 | CellStyleRule + evaluateStyle + applyCellStyles |
+| `cell-hover-template/` | 悬停模板 | renderHoverTemplate 支持 `{column}` 占位符 |
+| `cell-hover-text/` | 悬停文本 | 基础 hover 显示 |
+| `column-summary/` | 列摘要 | ColumnChartSpecModel + ColumnChartContext |
+| `column-explorer-panel/` | 列浏览器 | 可搜索的列列表面板 |
+| `column-formatting/` | 列格式化 | ColumnFormatRule + Intl.NumberFormat |
+| `column-wrapping/` | 列换行 | wrappedColumns Set 管理 |
+| `copy-column/` | 列复制 | copyColumnToClipboard 剪贴板 API |
+| `focus-row/` | 行聚焦 | focusedRowIndex 状态 |
+| `charts/` | 图表面板 | TablePanel + ChartConfig + hasChart storage |
+| `hooks/` | 自定义 hooks | useColumnPinning + usePanelOwnership |
+| `loading-table.tsx` | 加载态 | 骨架屏动画 |
+| `SearchBar.tsx` | 搜索栏 | 全局搜索 + 清空按钮 |
+| `row-viewer-panel/` | 行详情 | 单行所有字段垂直展示 |
+| `cell-utils.ts` | 单元格工具 | getCellId + parseCellId |
+
+#### B. Charts 组件 (`src/components/charts/`) — 3 个文件
+- **Chart.tsx** — 基于 Recharts 的多类型图表组件 (Bar/Line/Area/Pie/Scatter)
+  - 可切换图表类型的按钮组
+  - 自动检测 X/Y 数据列
+  - ResponsiveContainer 自适应
+- **Chart.module.css** — 独立 CSS module
+- **index.ts** — 统一导出
+
+#### C. CodeEditor 组件 (`src/components/editor/`) — 12 个文件
+4 个子组件，每个包含 .tsx + .module.css + index.ts:
+
+| 组件 | 说明 |
+|------|------|
+| `CodeEditor/` | 语法高亮代码编辑器 (react-syntax-highlighter, Catppuccin 暗色主题, 行号, 复制, 自动语言检测) |
+| `OutputArea/` | 命令输出区 (stdout/stderr 分区, exit code badge, 流式滚动) |
+| `TerminalOutput/` | macOS 风格终端 (红黄绿点标题栏, 多行类型着色, 闪烁光标) |
+| `CellActions/` | 代码单元操作条 (Run/Delete/Duplicate/Move/Visibility) |
+
+#### D. FileViewer 组件 (`src/components/file-viewer/`) — 3 个文件
+- **FileViewer.tsx** — 树形文件浏览器 + 预览面板
+  - 递归 TreeNode 渲染 (目录/文件)
+  - 文件类型图标映射 (15种扩展名)
+  - 搜索过滤功能
+  - 双栏布局 (文件树 + 内容预览)
+- **FileViewer.module.css** — CSS module
+- **index.ts** — 导出
+
+---
+
+### 文件变更清单 (05次)
+
+| 操作 | 文件路径 | 文件数 |
+|------|---------|--------|
+| **新建** | `src/components/data-table/**` | 35 个文件 |
+| **新建** | `src/components/charts/**` | 3 个文件 |
+| **新建** | `src/components/editor/**` | 12 个文件 |
+| **新建** | `src/components/file-viewer/**` | 3 个文件 |
+| **更新** | `plan.md` | 进度更新 |
+
+**未修改的文件** (确认完整保留):
+- `src/components/Agentic/AgenticChat.tsx` — 无修改
+- `src/components/agent/**` — 无修改 (Phase 3 组件)
+- `src/components/ui/**` — 无修改 (53 个 UI 组件)
+- `src/plugins/**` — 无修改 (marimo 插件)
+- `src/core/**` — 无修改 (379 个 core 文件)
+- `src/hooks/**` — 无修改
+- `src/types/**` — 无修改
+- `src/styles/**` — 无修改
+
+---
+
+### 开发进度总览
+
+| Phase | 任务 | 状态 | 文件数 |
+|-------|------|------|--------|
+| Phase 1 | 基础架构 (CSS变量/主题/动画/cn工具) | ✅ 完成 | ~20 |
+| Phase 1.5 | npm依赖 + marimo adapter | ✅ 完成 | 13 |
+| Phase 2 | 聊天界面 (已有 Agentic/Chat) | ✅ 完成 | ~30 |
+| Phase 3 | Agent 可视化 (5组件) | ✅ 完成 | 15 |
+| **Phase 4** | **数据展示 (DataTable/Chart/CodeEditor/FileViewer)** | **✅ 完成** | **50** |
+| Phase 5 | 插件系统 + 打磨 | ⏳ 待开始 | — |
+
+**总文件数**: 789 个 (src/ 目录)
+
+---
+
+### 下一步: Phase 5 — 插件系统 + 打磨
+
+1. Plugin builder + registry (整合已有 `src/plugins/core/builder.ts`)
+2. 响应式适配 (移动端布局)
+3. 动画/微交互 (framer-motion 集成)
+4. 性能优化 (虚拟滚动, 懒加载, React.memo)
+
+---
+
+### 本地部署命令
+
+```bash
+# === 1. 在服务器上操作 ===
+cd /root/dylan/skynetCheapBuy/skynetFronted
+
+# === 2. 复制新文件到对应目录 ===
+# 需要复制的 4 个新目录:
+# src/components/data-table/
+# src/components/charts/
+# src/components/editor/
+# src/components/file-viewer/
+
+# === 3. 安装依赖 + 构建 ===
+npm install
+npm run build
+
+# === 4. Git 提交 ===
+git add -A
+git diff --cached --stat
+git commit -m "feat(phase4): DataTable + Chart + CodeEditor + FileViewer components
+
+Phase 4: 数据展示组件 — 50 个新文件
+- DataTable: TanStack Table 完整子模块系统 (35 files)
+- Charts: Recharts 多类型图表 (Bar/Line/Area/Pie/Scatter)
+- CodeEditor: 语法高亮 + 行号 + macOS终端 + 输出区
+- FileViewer: 树形浏览器 + 预览面板 + 搜索
+
+Total: 739 → 789 files in src/"
+
+git push origin main
+```

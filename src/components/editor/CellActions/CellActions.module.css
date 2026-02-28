@@ -1,0 +1,5 @@
+.actions { display: flex; align-items: center; gap: 0.125rem; opacity: 0; transition: opacity 150ms; }
+.actions:hover, .group:hover .actions { opacity: 1; }
+.btn { padding: 0.25rem; border-radius: var(--radius); cursor: pointer; background: none; border: none; color: var(--muted-foreground); transition: all 150ms; }
+.btn:hover { background: var(--muted); color: var(--foreground); }
+.btn.danger:hover { color: #f87171; }

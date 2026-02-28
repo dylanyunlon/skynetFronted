@@ -1,0 +1,10 @@
+.viewer { display: flex; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); background: var(--background); }
+.tree { border-right: 1px solid var(--border); overflow: auto; }
+.searchBox { padding: 0.5rem; border-bottom: 1px solid var(--border); }
+.treeItem { width: 100%; display: flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: var(--radius); cursor: pointer; text-align: left; background: none; border: none; transition: background 150ms; }
+.treeItem:hover { background: var(--muted); }
+.treeItem.selected { background: hsl(var(--primary) / 0.1); color: var(--primary); }
+.preview { flex: 1; overflow: auto; }
+.previewHeader { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); background: var(--muted); }
+.previewContent { padding: 0.75rem; }
+.empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted-foreground); font-size: 0.875rem; }
