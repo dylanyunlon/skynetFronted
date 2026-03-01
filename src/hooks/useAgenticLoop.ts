@@ -343,6 +343,10 @@ export function useAgenticLoop() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
+        // SSE events are separated by double newline.
+        // sse-starlette may use \r\n\r\n or \n\n depending on config.
+        // Normalize \r\n to \n first, then split on \n\n.
+        buffer = buffer.replace(/\r\n/g, '\n');
         const parts = buffer.split('\n\n');
         buffer = parts.pop() || '';
 

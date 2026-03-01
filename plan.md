@@ -1883,3 +1883,97 @@ Total: 739 → 789 files in src/"
 
 git push origin main
 ```
+---
+
+### 第6次迭代: Agentic Loop v13 — Claude Code Web 风格全面改造
+
+> **日期**: 2026-02-28
+> **核心变更**: AgenticChat.tsx 完全重写为 Claude Code Web 产品风格
+
+#### 改造内容 (对标 claude.com/product/claude-code)
+
+| # | 功能 | 实现方式 | 状态 |
+|---|------|---------|------|
+| 1 | **⏺ Bullet Indicator** | 每个操作行前添加彩色圆点指示符，匹配 Claude Code 终端 `⏺` 符号 | ✅ |
+| 2 | **Tool 调用签名** | `ToolName(args)…` 格式 — 如 `Bash(cd /path && npm test)…`, `Read(src/app.tsx)…`, `Search(pattern: "auth")…` | ✅ |
+| 3 | **折叠/展开** | 默认折叠 tool 详情，hover 显示 chevron，点击展开完整输出 | ✅ |
+| 4 | **Web Search 卡片** | 三行布局: favicon首字母 + 标题(蓝色) + 域名(灰色) | ✅ |
+| 5 | **Diff 内联统计** | Edit(path) 后显示 `+N -M` 绿红统计 | ✅ |
+| 6 | **Turn Summary** | Claude Code 格式: "Ran N commands, viewed a file, edited 2 files" | ✅ |
+| 7 | **暗色终端主题** | `bg-[#1a1a2e]` 深蓝黑底色，`bg-[#16162a]` 状态栏/输入区 | ✅ |
+| 8 | **"Thinking…" 脉冲** | 运行中显示蓝色脉冲圆点 + "Thinking…" | ✅ |
+| 9 | **空状态** | "What can I help you with?" + hint chips | ✅ |
+| 10 | **完成统计** | `✓ Done · N turns · M tool calls · Xs · $cost` | ✅ |
+| 11 | **所有 v12 功能保留** | TodoList, Approval, Debug/Test, Diff, SubAgent, Context Compact 等全部保留 | ✅ |
+
+#### 文件变更清单
+
+| 操作 | 文件路径 | 说明 |
+|------|---------|------|
+| **重写** | `src/components/Agentic/AgenticChat.tsx` | 887行→705行，Claude Code 风格完全重写 |
+| **备份** | `src/components/Agentic/AgenticChat.tsx.bak` | v12 备份 |
+| **更新** | `plan.md` | 进度更新 |
+
+#### 未修改的文件 (确认完整保留)
+
+- `src/hooks/useAgenticLoop.ts` — 无修改 (SSE hook)
+- `src/types/agentic.ts` — 无修改 (类型定义)
+- `src/components/Agentic/DiffViewer.tsx` — 无修改 (Diff 组件)
+- `src/components/Agentic/AgenticWorkspace.tsx` — 无修改 (工作区布局)
+- `src/components/agent/**` — 无修改
+- `src/components/ui/**` — 无修改
+- `src/plugins/**` — 无修改
+- `src/core/**` — 无修改
+- `src/App.tsx` — 无修改
+
+#### Claude Code 参考资料
+
+- [claude.com/product/claude-code](https://claude.com/product/claude-code) — 产品页示例
+- [code.claude.com/docs](https://code.claude.com/docs/en/how-claude-code-works) — 官方文档
+- [claudecn.com agent-loop v0-v4](https://claudecn.com/en/docs/claude-code/advanced/agent-loop/) — 中文社区
+- [blog.promptlayer.com](https://blog.promptlayer.com/claude-code-behind-the-scenes-of-the-master-agent-loop/) — 架构逆向
+
+#### 视觉对比
+
+**v12 (旧)**:
+```
+┌─ border rounded-lg ──────────────┐
+│ ▸ ⚡ Command  [✓]  0.5s         │
+│   $ npm test                     │
+└──────────────────────────────────┘
+```
+
+**v13 (新 — Claude Code 风格)**:
+```
+⏺ Bash(cd /path && npm test)…     0.5s  ▸
+  │ $ cd /path && npm test
+  │ > test output...
+
+⏺ Read(src/components/App.tsx)…
+⏺ Edit(src/utils/auth.ts)         +12 -3
+⏺ Ran 5 commands, viewed 2 files, edited a file  ✓
+```
+
+#### 部署命令
+
+```bash
+cd /root/dylan/skynetCheapBuy/skynetFronted
+# 复制 AgenticChat.tsx (已重写)
+npm run build
+git add -A
+git diff --cached --stat
+git commit -m "feat(v13): Claude Code Web style agentic loop UI
+
+Complete rewrite of AgenticChat.tsx to match Claude Code product style:
+- ⏺ Bullet indicators for all operations
+- ToolName(args)… call signature format
+- Collapsible tool details with hover chevrons
+- Dark terminal theme (#1a1a2e)
+- Turn summaries: 'Ran N commands, viewed M files'
+- Web search 3-line card layout
+- Inline +N -M diff stats
+- 'Thinking…' pulse indicator
+- All v12 features preserved (Todo/Approval/Debug/SubAgent/etc)"
+
+git push origin main
+```
