@@ -1,16 +1,88 @@
 // src/types/agentic.ts
-// Agentic Loop v10 前端类型定义 — Claude Code 全功能深度对标
-// 新增: debug_start/result, test_result, revert, diff_summary, approval_wait,
-//       chunk_schedule, context_compact, heartbeat, approval_needed
+// Agentic Loop v14 前端类型定义 — Claude API SSE Protocol + Artifact System
+// v14 新增: Claude API 流式事件, Artifact 系统, 流式工具参数, thinking summary
+// v9-v13 全部保留
 
+// =============================================================================
+// 事件类型 (v9 全部保留 + v14 Claude API protocol)
+// =============================================================================
 export type AgenticEventType =
   | 'start' | 'text' | 'thinking' | 'tool_start' | 'tool_result'
   | 'file_change' | 'turn' | 'progress' | 'usage' | 'done' | 'error'
   | 'todo_update' | 'subagent_start' | 'subagent_result'
   | 'debug_start' | 'debug_result' | 'test_result' | 'revert'
   | 'diff_summary' | 'approval_wait' | 'chunk_schedule'
-  | 'context_compact' | 'heartbeat' | 'approval_needed';
+  | 'context_compact' | 'heartbeat' | 'approval_needed'
+  // v14: Claude API protocol events
+  | 'message_start' | 'content_block_start' | 'content_block_delta'
+  | 'content_block_stop' | 'message_delta' | 'message_stop';
 
+// =============================================================================
+// Claude API SSE Protocol Types (reverse-engineered from eventStream1-4.txt)
+// =============================================================================
+export interface ClaudeMessageStart {
+  type: 'message_start';
+  message: {
+    id: string; type: 'message'; role: 'assistant'; model: string;
+    content: any[]; stop_reason: string | null; stop_sequence: string | null;
+    trace_id?: string; request_id?: string;
+  };
+}
+
+export interface ClaudeContentBlockStart {
+  type: 'content_block_start';
+  index: number;
+  content_block: {
+    type: 'thinking' | 'text' | 'tool_use';
+    thinking?: string; summaries?: any[];
+    text?: string;
+    id?: string; name?: string; input?: Record<string, any>;
+    message?: string; icon_name?: string;
+    start_timestamp?: string; stop_timestamp?: string | null;
+  };
+}
+
+export interface ClaudeContentBlockDelta {
+  type: 'content_block_delta';
+  index: number;
+  delta: {
+    type: 'thinking_delta' | 'text_delta' | 'input_json_delta'
+        | 'tool_use_block_update_delta' | 'thinking_summary_delta';
+    thinking?: string; text?: string; partial_json?: string;
+    message?: string; display_content?: string | null;
+    summary?: { summary: string };
+  };
+}
+
+export interface ClaudeContentBlockStop {
+  type: 'content_block_stop'; index: number; stop_timestamp?: string;
+}
+
+export interface ClaudeMessageDelta {
+  type: 'message_delta'; delta: { stop_reason: string };
+}
+
+export interface ClaudeMessageStop { type: 'message_stop'; }
+
+// =============================================================================
+// Artifact System
+// =============================================================================
+export type ArtifactType = 'html' | 'react' | 'svg' | 'markdown' | 'mermaid' | 'code' | 'pdf';
+
+export interface Artifact {
+  id: string; type: ArtifactType; title: string; content: string;
+  language?: string; version: number; createdAt: number; updatedAt: number;
+}
+
+// Streaming Tool State (live parameter display)
+export interface StreamingToolState {
+  toolUseId: string; toolName: string; message: string;
+  partialJson: string; isStreaming: boolean; index: number;
+}
+
+// =============================================================================
+// v9 原有接口 (全部保留)
+// =============================================================================
 export interface AgenticBaseEvent { type: AgenticEventType; turn?: number; timestamp?: number; session_id?: string; }
 export interface AgenticStartEvent extends AgenticBaseEvent { type: 'start'; task: string; model: string; work_dir: string; max_turns: number; version?: string; }
 export interface AgenticTextEvent extends AgenticBaseEvent { type: 'text'; content: string; }
@@ -81,6 +153,9 @@ export interface ToolResultMeta {
   // Phase 7: All Domains Code Execution
   language?: string; manager?: string; package?: string;
   download_path?: string; files?: Array<{ filename: string; path: string; download_path: string; size: number; error?: string }>;
+  // v14: Artifact
+  artifact_id?: string; artifact_type?: ArtifactType; artifact_title?: string;
+  stdout?: string; stderr?: string;
 }
 
 export interface TurnSummary {
@@ -121,6 +196,10 @@ export const TOOL_DISPLAY: Record<string, { label: string; icon: string; color: 
   execute_code:      { label: 'Execute code',  icon: '▶️', color: 'text-green-400' },
   install_package:   { label: 'Install',       icon: '📦', color: 'text-blue-400' },
   present_files:     { label: 'Files ready',   icon: '📎', color: 'text-emerald-400' },
+  str_replace:       { label: 'Edit file',     icon: '🔧', color: 'text-orange-400' },
+  create_file:       { label: 'Create file',   icon: '✏️', color: 'text-green-400' },
+  view:              { label: 'View file',     icon: '👁', color: 'text-blue-300' },
+  bash_tool:         { label: 'Command',       icon: '⚡', color: 'text-yellow-400' },
 };
 
 export interface AgenticTaskRequest { task: string; model?: string; project_id?: string; max_turns?: number; system_prompt?: string; work_dir?: string; }
@@ -129,7 +208,8 @@ export type AgenticBlockType =
   | 'text' | 'thinking' | 'tool' | 'turn_summary' | 'file_change'
   | 'progress' | 'usage' | 'error' | 'todo_update' | 'subagent'
   | 'debug_start' | 'debug_result' | 'test_result' | 'revert'
-  | 'diff_summary' | 'approval_wait' | 'chunk_schedule' | 'context_compact';
+  | 'diff_summary' | 'approval_wait' | 'chunk_schedule' | 'context_compact'
+  | 'artifact';
 
 export interface AgenticBlock {
   id: string;
@@ -139,6 +219,8 @@ export interface AgenticBlock {
   tool?: string; toolArgs?: Record<string, any>; toolResult?: string;
   toolResultMeta?: ToolResultMeta; toolSuccess?: boolean;
   toolDiff?: string; toolDescription?: string; toolDurationMs?: number;
+  // v14: streaming tool params
+  streamingJson?: string; streamingMessage?: string; isStreaming?: boolean;
   display?: string; summary?: TurnSummary; detailItems?: DetailItem[];
   fileAction?: string; filePath?: string; fileName?: string;
   linesAdded?: number; linesRemoved?: number;
@@ -159,4 +241,8 @@ export interface AgenticBlock {
   compactBeforeTokens?: number; compactAfterTokens?: number;
   compactBeforeMessages?: number; compactAfterMessages?: number;
   revertPath?: string; revertEditId?: string; revertDescription?: string;
+  // v14: Artifact
+  artifact?: Artifact;
+  // v14: thinking summary
+  thinkingSummary?: string;
 }

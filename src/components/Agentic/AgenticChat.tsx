@@ -71,6 +71,10 @@ const CLAUDE_TOOL_NAMES: Record<string, string> = {
   task_complete: 'Complete',
   debug_test: 'Bash',
   revert_to_checkpoint: 'Revert',
+  str_replace: 'Edit',
+  create_file: 'Write',
+  view: 'Read',
+  bash_tool: 'Bash',
 };
 
 // ============================================================
@@ -206,7 +210,7 @@ const BatchCommandsResults: React.FC<{ meta: ToolResultMeta }> = ({ meta }) => {
 const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   const [expanded, setExpanded] = useState(false);
   const tool = block.tool || '';
-  const isLoading = block.toolResult === undefined && block.toolSuccess === undefined;
+  const isLoading = block.isStreaming || (block.toolResult === undefined && block.toolSuccess === undefined);
   const meta = block.toolResultMeta;
 
   const buildClaudeCallSignature = (): { name: string; argText: string; suffix: string } => {
@@ -279,6 +283,17 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
       return { name: 'Files', argText: `${n} file${n !== 1 ? 's' : ''} ready`, suffix: '' };
     }
     return { name: ccName, argText: block.toolDescription || '', suffix: '' };
+  };
+
+  // v14: If streaming and we have partial JSON, show live typing effect
+  const getStreamingArgText = (): string | null => {
+    if (!block.isStreaming || !block.streamingJson) return null;
+    try {
+      // Show the last meaningful part being typed
+      const raw = block.streamingJson;
+      if (raw.length > 80) return raw.substring(raw.length - 77) + '...';
+      return raw;
+    } catch { return null; }
   };
 
   const { name: ccName, argText, suffix: statsSuffix } = buildClaudeCallSignature();
@@ -541,6 +556,45 @@ const InfoBlock: React.FC<{
 };
 
 // ============================================================
+// Thinking Block — collapsible with summary (v14)
+// ============================================================
+const ThinkingBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
+  const [expanded, setExpanded] = useState(false);
+  const summary = block.thinkingSummary;
+  const content = block.content || '';
+  const isActive = block.isStreaming;
+
+  return (
+    <div className="my-1 ml-4">
+      <div className="flex items-start gap-2 cursor-pointer group" onClick={() => setExpanded(!expanded)}>
+        <BulletIndicator color="text-gray-600" pulse={isActive} />
+        <div className="flex-1 min-w-0 text-xs">
+          {isActive && !summary && (
+            <span className="text-gray-500 italic">Thinking…</span>
+          )}
+          {summary && !expanded && (
+            <span className="text-gray-500 italic">{summary}</span>
+          )}
+          {!isActive && !summary && !expanded && (
+            <span className="text-gray-500 italic">Thought for a moment</span>
+          )}
+          {expanded && (
+            <div className="text-gray-500 italic leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+              {content}
+            </div>
+          )}
+        </div>
+        {content.length > 0 && (
+          expanded
+            ? <ChevronDown className="w-3 h-3 text-gray-600 shrink-0" />
+            : <ChevronRight className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-100 shrink-0" />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // 空状态
 // ============================================================
 const EmptyState: React.FC = () => (
@@ -640,12 +694,7 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
                     );
                   case 'thinking':
                     return (
-                      <div key={block.id} className="my-1 ml-4">
-                        <div className="flex items-start gap-2">
-                          <BulletIndicator color="text-gray-600" />
-                          <div className="text-xs text-gray-500 italic leading-relaxed flex-1">{block.content}</div>
-                        </div>
-                      </div>
+                      <ThinkingBlock key={block.id} block={block} />
                     );
                   case 'tool':
                     return <ToolBlock key={block.id} block={block} />;
