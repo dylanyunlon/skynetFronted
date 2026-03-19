@@ -264,6 +264,20 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
       const n = meta?.total_commands ?? meta?.executed ?? meta?.results?.length ?? 0;
       return { name: ccName, argText: `${n} script${n !== 1 ? 's' : ''}`, suffix: '' };
     }
+    if (tool === 'execute_code') {
+      const lang = meta?.language || block.toolArgs?.language || 'python';
+      const desc = block.toolDescription || block.toolArgs?.description || '';
+      return { name: `Execute(${lang})`, argText: desc || 'code', suffix: '' };
+    }
+    if (tool === 'install_package') {
+      const mgr = meta?.manager || block.toolArgs?.manager || 'pip';
+      const pkg = meta?.package || block.toolArgs?.package || '';
+      return { name: `${mgr} install`, argText: pkg, suffix: '' };
+    }
+    if (tool === 'present_files') {
+      const n = meta?.files?.length ?? block.toolArgs?.paths?.length ?? 0;
+      return { name: 'Files', argText: `${n} file${n !== 1 ? 's' : ''} ready`, suffix: '' };
+    }
     return { name: ccName, argText: block.toolDescription || '', suffix: '' };
   };
 
@@ -317,6 +331,39 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
             <div className="text-gray-500 text-[11px] mb-1.5">
               {meta?.truncated_range && <span>Lines {meta.truncated_range}</span>}
               {meta?.total_lines && <span> of {meta.total_lines} total</span>}
+            </div>
+          )}
+          {/* Phase 7: execute_code — show code + output */}
+          {tool === 'execute_code' && block.toolArgs?.code && (
+            <div className="bg-black/20 rounded px-2 py-1.5 mb-1.5">
+              <div className="text-[10px] text-gray-500 mb-1">{meta?.language || block.toolArgs?.language || 'python'}</div>
+              <pre className="text-green-300/80 whitespace-pre-wrap text-[11px]">{(block.toolArgs.code || '').substring(0, 2000)}</pre>
+            </div>
+          )}
+          {/* Phase 7: install_package — show command + result */}
+          {tool === 'install_package' && (
+            <div className="bg-black/20 rounded px-2 py-1.5 mb-1.5">
+              <pre className="text-yellow-300/80 text-[11px]">$ {meta?.manager || 'pip'} install {meta?.package || block.toolArgs?.package}</pre>
+            </div>
+          )}
+          {/* Phase 7: present_files — download links */}
+          {tool === 'present_files' && meta?.files && meta.files.length > 0 && (
+            <div className="space-y-1 mb-1.5">
+              {meta.files.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-[11px]">
+                  {f.error ? (
+                    <span className="text-red-400">✗ {f.path || f.filename}: {f.error}</span>
+                  ) : (
+                    <>
+                      <span className="text-emerald-400">📎 {f.filename}</span>
+                      <span className="text-gray-600">{f.size ? `(${(f.size / 1024).toFixed(1)}KB)` : ''}</span>
+                      {f.download_path && (
+                        <a href={f.download_path} className="text-blue-400 hover:underline" download>Download</a>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
           )}
           {block.toolResult && !block.toolDiff && tool !== 'web_search' && tool !== 'batch_commands' && (

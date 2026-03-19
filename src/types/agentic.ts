@@ -78,6 +78,9 @@ export interface ToolResultMeta {
   duration_s?: number;
   diagnosis?: { error_type: string; error_summary: string; likely_files: string[] };
   path?: string; edit_id?: string; diff_display?: string;
+  // Phase 7: All Domains Code Execution
+  language?: string; manager?: string; package?: string;
+  download_path?: string; files?: Array<{ filename: string; path: string; download_path: string; size: number; error?: string }>;
 }
 
 export interface TurnSummary {
@@ -115,6 +118,9 @@ export const TOOL_DISPLAY: Record<string, { label: string; icon: string; color: 
   task_complete:     { label: 'Complete',      icon: '✅', color: 'text-green-500' },
   debug_test:        { label: 'Debug test',    icon: '🐛', color: 'text-red-400' },
   revert_to_checkpoint: { label: 'Revert',    icon: '↩️', color: 'text-red-400' },
+  execute_code:      { label: 'Execute code',  icon: '▶️', color: 'text-green-400' },
+  install_package:   { label: 'Install',       icon: '📦', color: 'text-blue-400' },
+  present_files:     { label: 'Files ready',   icon: '📎', color: 'text-emerald-400' },
 };
 
 export interface AgenticTaskRequest { task: string; model?: string; project_id?: string; max_turns?: number; system_prompt?: string; work_dir?: string; }

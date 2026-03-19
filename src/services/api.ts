@@ -1137,3 +1137,36 @@ export const detectVibeCodingIntent = (input: string): boolean => {
 
 // Export singleton instance
 export const api = new ChatBotAPIService();
+
+// =============================================================================
+// Phase 7: Agent file upload/download helpers
+// =============================================================================
+
+export async function agentUploadFile(file: File, projectId?: string): Promise<any> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const params = projectId ? `?project_id=${projectId}` : '';
+  const resp = await fetch(`/api/v2/agent/upload-file${params}`, {
+    method: 'POST',
+    body: formData,
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+  });
+  return resp.json();
+}
+
+export async function agentDownloadFile(filename: string, projectId?: string): Promise<Blob> {
+  const params = projectId ? `?project_id=${projectId}` : '';
+  const resp = await fetch(`/api/v2/agent/download/${encodeURIComponent(filename)}${params}`, {
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+  });
+  if (!resp.ok) throw new Error(`Download failed: ${resp.statusText}`);
+  return resp.blob();
+}
+
+export async function agentListWorkspaceFiles(projectId?: string): Promise<any> {
+  const params = projectId ? `?project_id=${projectId}` : '';
+  const resp = await fetch(`/api/v2/agent/workspace-files${params}`, {
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+  });
+  return resp.json();
+}
