@@ -282,6 +282,24 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
       const n = meta?.files?.length ?? block.toolArgs?.paths?.length ?? 0;
       return { name: 'Files', argText: `${n} file${n !== 1 ? 's' : ''} ready`, suffix: '' };
     }
+    if (tool === 'str_replace') {
+      const path = block.toolArgs?.path || meta?.filename || '';
+      const desc = block.toolArgs?.description || block.toolDescription || '';
+      return { name: 'Edit', argText: path || desc, suffix: '' };
+    }
+    if (tool === 'create_file' || tool === 'write_file') {
+      const path = block.toolArgs?.path || meta?.filename || '';
+      return { name: 'Write', argText: path, suffix: '' };
+    }
+    if (tool === 'view') {
+      const path = block.toolArgs?.path || '';
+      return { name: 'Read', argText: path, suffix: '' };
+    }
+    if (tool === 'bash_tool') {
+      const cmd = block.toolArgs?.command || '';
+      const preview = cmd.length > 80 ? cmd.substring(0, 77) + '...' : cmd;
+      return { name: 'Bash', argText: preview, suffix: '' };
+    }
     return { name: ccName, argText: block.toolDescription || '', suffix: '' };
   };
 
@@ -297,6 +315,8 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   };
 
   const { name: ccName, argText, suffix: statsSuffix } = buildClaudeCallSignature();
+  const streamingArg = getStreamingArgText();
+  const displayArg = streamingArg || argText;
   const bulletColor = isLoading ? 'text-blue-400' : block.toolSuccess === false ? 'text-red-400' : 'text-blue-400';
 
   return (
@@ -306,8 +326,8 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
         <BulletIndicator color={bulletColor} pulse={isLoading} />
         <div className="flex-1 min-w-0 text-sm">
           <span className="text-gray-200 font-medium">{ccName}</span>
-          {argText && <span className="text-gray-400">({argText.length > 100 ? argText.substring(0, 97) + '...' : argText})</span>}
-          {isLoading && <span className="text-gray-500">…</span>}
+          {displayArg && <span className={`text-gray-400 ${streamingArg ? 'animate-pulse' : ''}`}>({displayArg.length > 100 ? displayArg.substring(0, 97) + '...' : displayArg})</span>}
+          {isLoading && !streamingArg && <span className="text-gray-500">…</span>}
           {statsSuffix && (
             <span className="ml-2 text-xs">
               {statsSuffix.includes('+') && <span className="text-green-400">{statsSuffix.split(' ')[0]} </span>}
