@@ -1977,3 +1977,35 @@ Complete rewrite of AgenticChat.tsx to match Claude Code product style:
 
 git push origin main
 ```
+---
+
+### 第7次迭代: v15 — Claude API SSE tool_result 完整协议支持
+
+> **日期**: 2026-03-19
+> **TDD**: 98/98 tests pass (40 new + 48 + 10 existing)
+> **Build**: ✅ production build succeeds
+
+#### 问题诊断
+
+通过逆向工程分析 eventStream1-4.txt (4个真实 Claude API 响应流), 发现:
+
+1. **`tool_result` 内容块完全未处理** — `useAgenticLoop.ts` 的 `handleClaudeEvent()` 只处理 thinking/text/tool_use, 但 Claude API 把 tool_result 作为独立的 content_block 发送
+2. **tool_result 协议格式**: `content_block_start → delta (input_json_delta) → content_block_stop`
+3. **5种工具**: bash_tool(36), str_replace(15), view(1), create_file(1), present_files(1)
+
+#### 文件变更
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| **新增** | `src/utils/claudeProtocolParser.ts` | 500+ 行, 完整 Claude API SSE 协议解析器 |
+| **新增** | `src/utils/claudeProtocolTestHelpers.ts` | 248 行, 测试辅助 |
+| **修改** | `src/hooks/useAgenticLoop.ts` | v14→v15, tool_result 完整处理 |
+| **重写** | `tests/tdd_v15/test_claude_sse_protocol.test.ts` | 40 tests |
+
+#### useAgenticLoop.ts v15 核心改动
+
+```
+content_block_start + tool_result → parseToolResultContent → toolResultInfoRef
+content_block_delta + input_json_delta → toolResultJsonMapRef (累积)
+content_block_stop → parseStreamedToolResultJson → extractBashOutput → matchToolResultToToolUse → 链接回 tool_use block
+```
