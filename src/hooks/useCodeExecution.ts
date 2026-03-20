@@ -17,6 +17,7 @@ export function useCodeExecution() {
       
       if (response.success) {
         const result: ExecutionResult = {
+          code_id: codeId,
           success: response.data.result.success,
           output: response.data.result.output,
           error: response.data.result.error,
@@ -34,6 +35,7 @@ export function useCodeExecution() {
       }
     } catch (error) {
       const errorResult: ExecutionResult = {
+        code_id: codeId,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };

@@ -42,7 +42,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className,
           )}
           ref={ref}
-          onClick={Events.stopPropagation()}
+          onClick={(e) => Events.stopPropagation(e)}
           {...props}
         />
         {endAdornment && (

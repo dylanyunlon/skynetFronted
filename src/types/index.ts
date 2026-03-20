@@ -12,7 +12,7 @@ export interface Project {
   name: string;
   description?: string;
   type: string;
-  status: 'active' | 'archived' | 'deleted';
+  status: 'active' | 'archived' | 'deleted' | 'template';
   created_at: string;
   updated_at: string;
   last_executed_at?: string;
@@ -25,6 +25,7 @@ export interface Project {
   settings?: Record<string, any>;
   structure?: Record<string, any>;
   preview_url?: string;
+  ai_generated?: boolean;
 }
 
 export interface ProjectFile {
@@ -35,9 +36,12 @@ export interface ProjectFile {
 }
 
 export interface FileOperation {
-  operation: 'create' | 'update' | 'delete';
-  file_path: string;
+  operation?: 'create' | 'update' | 'delete';
+  type?: 'create' | 'update' | 'delete';
+  file_path?: string;
+  path?: string;
   content?: string;
+  old_content?: string;
 }
 
 export interface ProjectListParams {
@@ -82,6 +86,7 @@ export interface ProjectExecutionResult {
   debug_attempts?: number;
   debug_logs?: string[];
   preview_url?: string;
+  ai_generated?: boolean;
 }
 
 // ==================== Terminal 相关类型 ====================
@@ -100,10 +105,16 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant' | 'system';
   timestamp: Date;
+  isError?: boolean;
+  isStreaming?: boolean;
+  codeBlocks?: any[];
   metadata?: {
     extracted_codes?: ExtractedCode[];
     executions?: ExecutionResult[];
     cron_jobs?: CronJob[];
+    stage?: string;
+    isError?: boolean;
+    [key: string]: any;
   };
 }
 
@@ -120,6 +131,7 @@ export interface ExecutionResult {
   success: boolean;
   output?: string;
   error?: string;
+  execution_time?: number;
 }
 
 export interface CronJob {
@@ -134,10 +146,13 @@ export interface CronJob {
 export interface Conversation {
   id: string;
   title: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
+  created_at?: string;
+  updated_at?: string;
+  message_count?: number;
   model?: string;
+  messages?: Message[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // ==================== 用户相关类型 ====================
@@ -155,7 +170,7 @@ export interface Project {
   name: string;
   description?: string;
   type: string;
-  status: 'active' | 'archived' | 'deleted';
+  status: 'active' | 'archived' | 'deleted' | 'template';
   created_at: string;
   updated_at: string;
   last_executed_at?: string;
@@ -237,6 +252,7 @@ export interface VibeCodingGenerateData {
     files_created: number;
     workspace_path: string;
     preview_url?: string;
+  ai_generated?: boolean;
     execution_success: boolean;
     execution_error?: string;
   };
@@ -338,6 +354,7 @@ export interface ProjectCreatedEvent extends VibeCodingEvent {
     project: Project;
     session: VibeCodingSession;
     preview_url?: string;
+  ai_generated?: boolean;
   };
 }
 
@@ -393,3 +410,15 @@ export type VibeCodingResponseType<T> = T extends { data: { metadata: { stage: '
 export type VibeCodingIntentDetector = (input: string) => IntentDetectionResult;
 export type VibeCodingStageProcessor = (stage: VibeCodingStage, data: any) => Promise<any>;
 export type VibeCodingErrorHandler = (error: VibeCodingError) => void;
+// CodeBlock alias (used by codeParser.ts)
+export type CodeBlock = ExtractedCode;
+
+// CodeTemplate type (used by TemplateSelector)
+export interface CodeTemplate {
+  id: string;
+  name: string;
+  description: string;
+  language: string;
+  category: string;
+  content: string;
+}

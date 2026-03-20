@@ -27,7 +27,7 @@ const NativeSelect = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <select
     ref={ref}
-    onClick={Events.stopPropagation()}
+    onClick={(e) => Events.stopPropagation(e)}
     className={cn(selectStyles({}), className)}
     {...props}
   >

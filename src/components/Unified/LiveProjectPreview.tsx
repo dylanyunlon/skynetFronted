@@ -487,7 +487,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               {project.ai_generated && (
-                <Bot className="w-4 h-4 text-blue-500" title="AI生成项目" />
+                <Bot className="w-4 h-4 text-blue-500" aria-label="AI生成项目" />
               )}
               <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
@@ -519,7 +519,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
                 className={`p-2 rounded transition-colors ${
                   debugMode ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
-                title="AI项目指标"
+                aria-label="AI项目指标"
               >
                 <Activity className="w-4 h-4" />
               </button>
@@ -531,7 +531,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               className={`p-2 rounded transition-colors ${
                 debugMode ? 'bg-yellow-100 text-yellow-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
-              title="调试模式"
+              aria-label="调试模式"
             >
               <Bug className="w-4 h-4" />
             </button>
@@ -541,7 +541,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               <button
                 onClick={handleManualFix}
                 className="p-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded transition-colors"
-                title="手动修复预览URL"
+                aria-label="手动修复预览URL"
               >
                 <Wrench className="w-4 h-4" />
               </button>
@@ -552,7 +552,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               onClick={() => testSpecificPort(17430)}
               disabled={previewState.isManualTesting}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              title="测试17430端口"
+              aria-label="测试17430端口"
             >
               <Play className="w-4 h-4" />
             </button>
@@ -562,7 +562,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               onClick={forceRefreshPreview}
               disabled={previewState.loading}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              title="强制刷新"
+              aria-label="强制刷新"
             >
               <RefreshCw className={`w-4 h-4 ${previewState.loading ? 'animate-spin' : ''}`} />
             </button>
@@ -572,7 +572,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               <button
                 onClick={openInNewWindow}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                title="新窗口打开"
+                aria-label="新窗口打开"
               >
                 <ExternalLink className="w-4 h-4" />
               </button>
@@ -633,7 +633,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               <AlertCircle className="w-4 h-4" />
               <span>{previewState.error}</span>
               {project.ai_generated && (
-                <Bot className="w-4 h-4 text-blue-500" title="AI生成项目" />
+                <Bot className="w-4 h-4 text-blue-500" aria-label="AI生成项目" />
               )}
             </div>
           </div>
@@ -761,7 +761,7 @@ export const LiveProjectPreview: React.FC<LiveProjectPreviewProps> = ({
               <button
                 onClick={() => collectAIMetrics(project)}
                 className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                title="刷新AI指标"
+                aria-label="刷新AI指标"
               >
                 <Activity className="w-3 h-3" />
               </button>

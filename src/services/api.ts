@@ -144,7 +144,7 @@ export interface Project {
   name: string;
   description: string;
   type: 'python' | 'javascript' | 'typescript' | 'mixed' | 'other';
-  status: 'active' | 'archived' | 'template';
+  status: 'active' | 'archived' | 'deleted' | 'template';
   created_at: string;
   updated_at: string;
   last_executed_at?: string;
@@ -158,6 +158,7 @@ export interface Project {
   structure: Record<string, any>;
   preview_url?: string;
   files?: ProjectFile[];
+  ai_generated?: boolean;
 }
 
 export interface ProjectFile {
@@ -182,9 +183,12 @@ export interface ProjectListParams {
 }
 
 export interface FileOperation {
-  operation: 'create' | 'update' | 'delete';
-  file_path: string;
+  operation?: 'create' | 'update' | 'delete';
+  type?: 'create' | 'update' | 'delete';
+  file_path?: string;
+  path?: string;
   content?: string;
+  old_content?: string;
 }
 
 export interface CreateProjectRequest {
@@ -217,6 +221,11 @@ export interface ProjectExecutionResult {
   error?: string;
   preview_url?: string;
   execution_time?: number;
+  exit_code?: number;
+  stdout?: string;
+  stderr?: string;
+  debug_attempts?: number;
+  debug_logs?: string[];
 }
 
 export interface TerminalSession {

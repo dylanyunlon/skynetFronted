@@ -3,8 +3,6 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-import { parseShortcut } from "@/core/hotkeys/shortcuts";
-import { useEventListener } from "@/hooks/useEventListener";
 import { cn } from "@/utils/cn";
 import { Events } from "@/utils/events";
 
@@ -122,7 +120,19 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           return;
         }
 
-        if (parseShortcut(keyboardShortcut)(e)) {
+        // Simple shortcut matching: "mod+k" → Ctrl/Cmd+K
+        const parts = keyboardShortcut.toLowerCase().split("+");
+        const key = parts[parts.length - 1];
+        const needsMod = parts.includes("mod") || parts.includes("ctrl") || parts.includes("meta");
+        const needsShift = parts.includes("shift");
+        const needsAlt = parts.includes("alt");
+
+        const modMatch = !needsMod || e.ctrlKey || e.metaKey;
+        const shiftMatch = !needsShift || e.shiftKey;
+        const altMatch = !needsAlt || e.altKey;
+        const keyMatch = e.key.toLowerCase() === key;
+
+        if (modMatch && shiftMatch && altMatch && keyMatch) {
           e.preventDefault();
           e.stopPropagation();
           if (buttonRef?.current && !buttonRef.current.disabled) {
@@ -133,7 +143,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       [keyboardShortcut],
     );
 
-    useEventListener(document, "keydown", handleKeyPress);
+    React.useEffect(() => {
+      document.addEventListener("keydown", handleKeyPress);
+      return () => document.removeEventListener("keydown", handleKeyPress);
+    }, [handleKeyPress]);
 
     const Comp = asChild ? Slot : "button";
     return (

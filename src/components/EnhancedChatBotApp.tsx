@@ -163,7 +163,7 @@ export const EnhancedChatBotApp: React.FC = () => {
             onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
             conversations={conversations}
             currentConversationId={currentConversationId}
-            onSelectConversation={loadConversation}
+            onSelectConversation={(conv) => loadConversation(conv.id)}
             onDeleteConversation={deleteConversation}
             onNewChat={createNewConversation}
           />

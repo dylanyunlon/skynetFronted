@@ -37,11 +37,11 @@ export interface BinValues {
 export const TOO_MANY_ROWS = "too_many" as const;
 export type TooManyRows = typeof TOO_MANY_ROWS;
 
-export interface DataTableColumn<TData = unknown> extends ColumnDef<TData> {
+export type DataTableColumn<TData = unknown> = ColumnDef<TData> & {
   id: string;
   accessorKey?: string;
   header: string;
-}
+};
 
 export interface DataTableProps<TData = unknown> {
   data: TData[];

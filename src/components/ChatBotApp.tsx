@@ -528,7 +528,7 @@ const ChatBotApp: React.FC = () => {
         
         alert(message);
       } else {
-        alert('执行失败: ' + (result.data?.error || '未知错误'));
+        alert('执行失败: ' + (result.data?.result?.error || '未知错误'));
       }
     } catch (error) {
       console.error('Failed to execute code:', error);

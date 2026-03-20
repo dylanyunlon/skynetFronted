@@ -1,9 +1,8 @@
 /* Copyright 2026 Marimo. All rights reserved. */
 
 import type { PopoverContentProps } from "@radix-ui/react-popover";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { isInVscodeExtension } from "@/core/vscode/is-in-vscode";
-import { useEventListener } from "@/hooks/useEventListener";
 
 const VSCODE_OUTPUT_CONTAINER_SELECTOR = "[data-vscode-output-container]";
 
@@ -18,9 +17,11 @@ export function useFullScreenElement() {
   const [fullScreenElement, setFullScreenElement] = useState<Element | null>(
     document.fullscreenElement,
   );
-  useEventListener(document, "fullscreenchange", () => {
-    setFullScreenElement(document.fullscreenElement);
-  });
+  useEffect(() => {
+    const handler = () => setFullScreenElement(document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
   return fullScreenElement;
 }
 

@@ -106,7 +106,7 @@ class SessionPollingManager {
     onError: (error: string) => void;
   }> = new Map();
   
-  private pollTimer: NodeJS.Timeout | null = null;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private isPolling = false;
   private baseInterval = 3000;      // 基础轮询间隔 3秒
   private requestDelay = 300;       // 每个请求之间的间隔 300ms

@@ -595,9 +595,13 @@ export class BenchmarkAPIService {
       status: session.status,
       started_at: session.created_at,
       completed_at: session.completed_at,
+      stages: session.stages || {},
+      current_stage: session.current_stage || '',
       steps,
       current_step_index: steps.findIndex(s => s.status === 'running'),
       code_explorations: [],
+      generated_code: session.generated_code || [],
+      execution_results: session.execution_results || [],
       metrics: session.metrics || {},
       logs: session.logs || [],
       validation_result: session.validation_result

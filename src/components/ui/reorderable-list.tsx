@@ -268,7 +268,7 @@ export const ReorderableList = <T extends object>({
     const item = value.find((i) => getKey(i) === key);
 
     if (!item) {
-      Logger.warn("handleAction: item not found for key", {
+      console.warn("handleAction: item not found for key", {
         key,
         availableKeys: value.map((v) => getKey(v)),
       });

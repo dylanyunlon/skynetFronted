@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { SHORTCUTS } from '@/config/constants';
 
 interface ShortcutHandlers {
   onSendMessage?: () => void;

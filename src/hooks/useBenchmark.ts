@@ -78,7 +78,10 @@ const initialMetrics: BenchmarkMetrics = {
   completion_tokens: 0,
   total_api_calls: 0,
   total_duration_ms: 0,
-  estimated_cost_usd: 0
+  estimated_cost_usd: 0,
+  execution_completion_rate: 0,
+  task_pass_rate: 0,
+  alpha_score: 0
 };
 
 const initialState: BenchmarkState = {

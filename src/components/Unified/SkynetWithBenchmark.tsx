@@ -39,7 +39,7 @@ const ModeSelector: React.FC<{
 
   const modes = [
     {
-      id: 'agentic',
+      id: 'agentic' as const,
    name: 'Agentic Loop',
    description: 'AI 自主工具循环',
  icon: Zap,

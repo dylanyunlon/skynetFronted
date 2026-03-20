@@ -21,7 +21,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             "flex w-full mb-1 rounded-sm border border-input bg-background px-3 py-2 text-sm font-code ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-50 min-h-6",
             className,
           )}
-          onClick={Events.stopPropagation()}
+          onClick={(e) => Events.stopPropagation(e)}
           ref={ref}
           {...props}
         />

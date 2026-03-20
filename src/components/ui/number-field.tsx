@@ -25,7 +25,7 @@ export const NumberField = React.forwardRef<HTMLInputElement, NumberFieldProps>(
         {...props}
         formatOptions={{
           minimumFractionDigits: 0,
-          maximumFractionDigits: maxFractionalDigits(locale),
+          maximumFractionDigits: maxFractionalDigits(props.step ?? 1),
         }}
       >
         <div

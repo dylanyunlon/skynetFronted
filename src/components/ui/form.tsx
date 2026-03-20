@@ -53,15 +53,15 @@ const FormField = <
 }: ControllerProps<TFieldValues, TName>) => {
   return (
     // Need key to prevent context value from being stale
-    <FormFieldContext key={props.name} value={{ name: props.name }}>
+    <FormFieldContext.Provider key={props.name} value={{ name: props.name }}>
       <Controller {...props} />
-    </FormFieldContext>
+    </FormFieldContext.Provider>
   );
 };
 
 const useFormField = () => {
-  const fieldContext = React.use(FormFieldContext);
-  const itemContext = React.use(FormItemContext);
+  const fieldContext = React.useContext(FormFieldContext);
+  const itemContext = React.useContext(FormItemContext);
   const { getFieldState, formState } = useFormContext();
 
   const fieldState = getFieldState(fieldContext.name, formState);
@@ -97,13 +97,13 @@ const FormItem = React.forwardRef<
   const id = React.useId();
 
   return (
-    <FormItemContext value={{ id }}>
+    <FormItemContext.Provider value={{ id }}>
       <div
         ref={ref}
         className={cn("flex flex-col gap-1", className)}
         {...props}
       />
-    </FormItemContext>
+    </FormItemContext.Provider>
   );
 });
 FormItem.displayName = "FormItem";

@@ -193,9 +193,9 @@ export const Combobox = <TValue,>({
             />
             <CommandList className="max-h-60 py-.5">
               <CommandEmpty>{emptyState}</CommandEmpty>
-              <ComboboxContext value={{ isSelected, onSelect: handleSelect }}>
+              <ComboboxContext.Provider value={{ isSelected, onSelect: handleSelect }}>
                 {children}
-              </ComboboxContext>
+              </ComboboxContext.Provider>
             </CommandList>
           </Command>
         </PopoverContent>
@@ -253,7 +253,7 @@ export const ComboboxItem = React.forwardRef(
       typeof value === "object" && "value" in value
         ? value.value
         : String(value);
-    const context = React.use(ComboboxContext);
+    const context = React.useContext(ComboboxContext);
 
     return (
       <CommandItem

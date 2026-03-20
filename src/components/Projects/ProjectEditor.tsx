@@ -385,11 +385,8 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({
                 ) : (
                   <div className="p-4">
                     <CodeBlock
-                      code={{
-                        id: selectedFile.path,
-                        language: selectedFile.language,
-                        content: fileContent
-                      }}
+                      code={fileContent}
+                      language={selectedFile.language}
                       onExecute={() => {}}
                       onSetupCron={() => {}}
                     />

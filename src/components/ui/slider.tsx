@@ -20,7 +20,7 @@ const Slider = React.forwardRef<
     valueMap: (sliderValue: number) => number;
   }
 >(({ className, valueMap, ...props }, ref) => {
-  const [open, openActions] = useBoolean(false);
+  const { value: open, setTrue: openTrue, setFalse: openFalse } = useBoolean(false);
   const { locale } = useLocale();
 
   return (
@@ -59,16 +59,16 @@ const Slider = React.forwardRef<
             <SliderPrimitive.Thumb
               data-testid="thumb"
               className="block h-4 w-4 rounded-full shadow-xs-solid border border-blue-500 dark:border-primary dark:bg-accent bg-white hover:bg-blue-300 focus:bg-blue-300 transition-colors focus-visible:outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50"
-              onFocus={openActions.setTrue}
-              onBlur={openActions.setFalse}
-              onMouseEnter={openActions.setTrue}
-              onMouseLeave={openActions.setFalse}
+              onFocus={openTrue}
+              onBlur={openFalse}
+              onMouseEnter={openTrue}
+              onMouseLeave={openFalse}
             />
           </TooltipTrigger>
           <TooltipPortal>
             {props.value != null && props.value.length === 1 && (
               <TooltipContent key={props.value[0]}>
-                {prettyScientificNumber(valueMap(props.value[0]), { locale })}
+                {prettyScientificNumber(valueMap(props.value[0]))}
               </TooltipContent>
             )}
           </TooltipPortal>

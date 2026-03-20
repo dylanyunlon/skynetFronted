@@ -176,7 +176,11 @@ const ExecutionPanel: React.FC<{
   };
 
   // 预定义步骤（用于显示未开始的步骤）
-  const allStepDefs = Object.values(BENCHMARK_STEPS);
+  const allStepDefs = BENCHMARK_STEPS.map(s => ({
+    id: s,
+    name: s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    description: s.replace(/_/g, ' ')
+  }));
   const displaySteps = useMemo(() => {
     const existingIds = new Set(steps.map(s => s.id));
     const result = [...steps];

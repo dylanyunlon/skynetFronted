@@ -24,6 +24,7 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
       setResult(executionResult);
     } catch (error) {
       setResult({
+        code_id: codeId,
         success: false,
         error: error instanceof Error ? error.message : 'Execution failed',
       });

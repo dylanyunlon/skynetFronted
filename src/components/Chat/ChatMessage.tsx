@@ -41,9 +41,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               remarkPlugins={[remarkGfm]}
               className="prose dark:prose-invert max-w-none"
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ node, className, children, ...props }: any) {
                   const match = /language-(\w+)/.exec(className || '');
                   const codeString = String(children).replace(/\n$/, '');
+                  const inline = !match;
                   
                   if (!inline && match) {
                     // 添加安全检查

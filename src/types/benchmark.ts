@@ -86,6 +86,7 @@ export interface BenchmarkTask {
   expected_output?: string;
   market_value_usd?: number;
   metadata?: Record<string, any>;
+  timeout_seconds?: number;
 }
 
 // ==================== 执行步骤 ====================
@@ -123,6 +124,9 @@ export const BENCHMARK_STAGES = [
 ] as const;
 
 export type BenchmarkStage = typeof BENCHMARK_STAGES[number];
+
+// Backwards compatibility alias
+export const BENCHMARK_STEPS = BENCHMARK_STAGES;
 
 // ==================== 指标 ====================
 
@@ -216,6 +220,7 @@ export interface BenchmarkSession {
   output_files?: string[];
   generated_patch?: string;
   generated_submission?: string;
+  error?: string;
 }
 
 // ==================== 请求/响应 ====================

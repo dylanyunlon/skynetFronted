@@ -28,17 +28,21 @@ export function useDebouncedCallback<Args extends unknown[]>(
  * useDebounceControlledState - for controlled inputs with debounced onChange
  */
 export function useDebounceControlledState<T>(opts: {
-  value: T;
+  value?: T;
+  initialValue?: T;
   onChange?: (value: T) => void;
   delay?: number;
-}): [T, (value: T) => void] {
-  const { value, onChange, delay = 200 } = opts;
-  const [localValue, setLocalValue] = useState(value);
+}): { value: T; onChange: (value: T) => void } {
+  const { value: valueProp, initialValue, onChange, delay = 200 } = opts;
+  const initialVal = (valueProp ?? initialValue) as T;
+  const [localValue, setLocalValue] = useState<T>(initialVal);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    if (valueProp !== undefined) {
+      setLocalValue(valueProp);
+    }
+  }, [valueProp]);
 
   const handleChange = useCallback(
     (newValue: T) => {
@@ -51,5 +55,5 @@ export function useDebounceControlledState<T>(opts: {
     [onChange, delay]
   );
 
-  return [localValue, handleChange];
+  return { value: localValue, onChange: handleChange };
 }
