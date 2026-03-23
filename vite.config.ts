@@ -20,4 +20,13 @@ export default defineConfig({
       },
     },
   },
+  // @ts-ignore — vitest config
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
 })

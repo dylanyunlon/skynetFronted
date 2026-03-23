@@ -397,7 +397,8 @@ export function getIconForToolResult(iconName?: string): string {
 export function calculateBlockDuration(startTs: string | null, stopTs: string | null): number {
   if (!startTs || !stopTs) return 0;
   try {
-    return new Date(stopTs).getTime() - new Date(startTs).getTime();
+    const result = new Date(stopTs).getTime() - new Date(startTs).getTime();
+    return isNaN(result) ? 0 : result;
   } catch { return 0; }
 }
 

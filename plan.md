@@ -2078,3 +2078,118 @@ content_block_stop → parseStreamedToolResultJson → extractBashOutput → mat
 1. 清理 package.json 重复依赖
 2. 考虑删除 `src/core/core/` 和 `src/plugins/` 死代码目录（节省 3.7MB）
 3. 基于成功的 build，继续 Agentic Loop 功能开发
+
+---
+
+### 第9次迭代: v17 — TDD 110 Tests + 5 New Utility Modules + 52 Command Display Types
+
+> **日期**: 2026-03-24
+> **TDD**: 110/110 tests pass (100 new + 10 bonus)
+> **Build**: ✅ `tsc --noEmit` + `npm run build` succeeds (0 errors, 574KB JS + 86KB CSS)
+> **Git commit**: `14edf7a`
+
+#### TDD 流程执行
+
+| 步骤 | 说明 | 状态 |
+|------|------|------|
+| TDD Step 1 | 编写 110 个测试 (10 modules × ~10 tests) | ✅ |
+| TDD Step 2 | 运行测试确认失败 (新模块不存在 → import error) | ✅ |
+| TDD Step 3 | — (测试和实现同批提交) | — |
+| TDD Step 4 | 编写实现代码，迭代直到 110/110 pass | ✅ (2次迭代: 108→110) |
+| TDD Step 5 | 独立验证: tsc + vite build + 确认无过拟合 | ✅ |
+| TDD Step 6 | 提交代码 | ✅ |
+
+#### 测试覆盖 (110 tests, 11 modules)
+
+| Module | 文件/功能 | Tests | 状态 |
+|--------|----------|-------|------|
+| M1 | `parseClaudeSSELine` — SSE 行解析 | 10 | ✅ 全部通过 |
+| M2 | `parseToolResultContent` — tool_result 解析 | 10 | ✅ 全部通过 |
+| M3 | `extractToolCallSignature` — 50+ 工具签名 | 10 | ✅ 全部通过 |
+| M4 | `buildTurnSummaryFromBlocks` — Turn 摘要 | 10 | ✅ 全部通过 |
+| M5 | `processMessageEvents` — 端到端处理 | 10 | ✅ 全部通过 |
+| M6 | **NEW** `CommandDisplayRegistry` — 52 种命令显示类型 | 10 | ✅ 全部通过 |
+| M7 | **NEW** `EventStreamReplayer` — 事件流重放 | 10 | ✅ 全部通过 |
+| M8 | **NEW** `ToolResultFormatters` — 富格式化 | 10 | ✅ 全部通过 |
+| M9 | **NEW** `StreamingStateManager` — 流式状态管理 | 10 | ✅ 全部通过 |
+| M10 | **NEW** `ProtocolMetrics` — 性能指标 | 10 | ✅ 全部通过 |
+| Bonus | 现有工具函数 | 10 | ✅ 全部通过 |
+
+#### 52 种命令显示类型 (CommandDisplayRegistry)
+
+| 类别 | 工具名 | 数量 |
+|------|--------|------|
+| Execution | bash_tool, bash, run_script, batch_commands, debug_test, execute_code, install_package, pip_install, npm_install, apt_install | 10 |
+| File Read | view, read_file, batch_read, view_truncated, list_dir, glob, cat_file, head_file | 8 |
+| File Edit | str_replace, edit_file, multi_edit, patch_file, sed_replace | 5 |
+| File Create | create_file, write_file, mkdir, copy_file | 4 |
+| Search | grep_search, file_search, regex_search, find_files | 4 |
+| Web | web_search, web_fetch, curl | 3 |
+| Output | present_files, download_file, export_result | 3 |
+| Planning | todo_write, todo_read, plan_create, checkpoint_save | 4 |
+| Subagent | task, task_complete, subagent_spawn | 3 |
+| Memory | memory_read, memory_write | 2 |
+| Revert | revert_edit, revert_to_checkpoint, git_revert | 3 |
+| Testing | test_run, test_debug, coverage_check | 3 |
+| **Total** | | **52** |
+
+#### 新增文件 (5 modules)
+
+| 文件 | 行数 | 说明 |
+|------|------|------|
+| `src/utils/commandDisplayRegistry.ts` | 280 | 52 种命令显示类型注册表，含 label/icon/color/category/formatTitle |
+| `src/utils/eventStreamReplayer.ts` | 170 | 解析/重放 eventStream SSE 文件，提取工具调用，分组 turns |
+| `src/utils/toolResultFormatters.ts` | 200 | bash/edit/view/create/present/search/test/diff 富格式化器 |
+| `src/utils/streamingStateManager.ts` | 150 | 不可变流式块状态管理 (active/completed blocks) |
+| `src/utils/protocolMetrics.ts` | 140 | Token 用量、延迟、工具调用统计、性能报告 |
+
+#### 修改文件 (3 files)
+
+| 文件 | 变更 |
+|------|------|
+| `src/utils/claudeProtocolParser.ts` | Fix: `calculateBlockDuration` NaN guard for invalid dates |
+| `vite.config.ts` | Add vitest test configuration |
+| `package.json` | Add vitest + @testing-library + test scripts |
+
+#### 未修改的文件 (确认完整保留)
+
+- `src/hooks/useAgenticLoop.ts` — 无修改
+- `src/types/agentic.ts` — 无修改
+- `src/components/Agentic/AgenticChat.tsx` — 无修改
+- `src/components/Agentic/DiffViewer.tsx` — 无修改
+- `src/components/agent/**` — 无修改
+- `src/components/ui/**` — 无修改
+
+#### 部署命令
+
+```bash
+cd /root/dylan/skynetCheapBuy/skynetFronted
+git pull origin main
+
+# 安装新依赖 (vitest)
+npm install
+
+# 运行测试
+npm test
+
+# 构建
+npm run build
+
+# 提交 (已在本地提交 14edf7a, 需要 push)
+git push origin main
+```
+
+#### eventStream1-4.txt 分析结果
+
+| 指标 | eventStream1 | eventStream2 | eventStream3 | eventStream4 |
+|------|-------------|-------------|-------------|-------------|
+| 行数 | 7,079 | 5,342 | 2,493 | 1,030 |
+| event 类型 | 7 种 | 7 种 | 7 种 | 7 种 |
+| delta 类型 | thinking_delta, text_delta, input_json_delta, tool_use_block_update_delta, thinking_summary_delta | 同左 | 同左 | 同左 |
+| 工具 | bash_tool, str_replace, view, create_file, present_files | 同左 | 同左 | 同左 |
+| icon_name | commandLine, edit, file | 同左 | 同左 | 同左 |
+| stop_reason | end_turn, tool_use_limit | 同左 | 同左 | 同左 |
+
+---
+
+> **下一步**: 将 CommandDisplayRegistry 集成到 AgenticChat.tsx 的 ToolBlock 渲染中，替换硬编码的 TOOL_DISPLAY 映射

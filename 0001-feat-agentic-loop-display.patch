@@ -1,0 +1,1015 @@
+From 3f4d21741f8b0836a3186debd90b6f4ffbdc863f Mon Sep 17 00:00:00 2001
+From: dylanyunlong <dylanyunlong@gmail.com>
+Date: Mon, 23 Mar 2026 16:02:46 +0000
+Subject: [PATCH] feat(frontend): add Agentic Loop Event Stream Monitor with 63
+ command types
+
+- 63 command types across 14 categories (SSE Protocol, Cognition, Text Output,
+  Tool Framework, Shell, File Operations, Search & Process, Git Operations,
+  Packages, Containers, Execution, Network, Archive & Patch, Database)
+- 56 demo events derived from real eventStream1-4 SSE data
+- 3 view modes: Stream (collapsible timeline), Compact (grid), Reference (type catalog)
+- Category filtering, text search, expand/collapse all controls
+- Real SSE protocol structure: message_start/stop/delta, content_block_start/stop/delta,
+  thinking/thinking_delta/thinking_summary, tool_use/tool_result, input_json_delta
+- Collapsible panels with syntax-highlighted command output, error states, status badges
+- Rate limit utilization bars from message_limit events
+- 33 SVG icon set covering all tool categories
+- Sticky header with glassmorphism backdrop-filter
+- Dark theme with IBM Plex Mono typography
+
+Source data: eventStream1.txt, eventStream2.txt, eventStream3.txt, eventStream4.txt
+---
+ src/components/AgenticLoopDisplay.jsx | 980 ++++++++++++++++++++++++++
+ 1 file changed, 980 insertions(+)
+ create mode 100644 src/components/AgenticLoopDisplay.jsx
+
+diff --git a/src/components/AgenticLoopDisplay.jsx b/src/components/AgenticLoopDisplay.jsx
+new file mode 100644
+index 0000000..14d30e1
+--- /dev/null
++++ b/src/components/AgenticLoopDisplay.jsx
+@@ -0,0 +1,980 @@
++import { useState, useEffect, useRef, useCallback } from "react";
++
++// ── Icon Components ──────────────────────────────────────────────
++const Icons = {
++  terminal: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M4 12l4-4-4-4" /><path d="M9 12h4" />
++    </svg>
++  ),
++  edit: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
++    </svg>
++  ),
++  file: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5L9 1z" /><path d="M9 1v4h4" />
++    </svg>
++  ),
++  folder: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M2 3h4l2 2h6v8a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" />
++    </svg>
++  ),
++  search: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="7" cy="7" r="4" /><path d="M14 14l-3.5-3.5" />
++    </svg>
++  ),
++  git: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="8" cy="3" r="1.5" /><circle cx="8" cy="13" r="1.5" /><circle cx="13" cy="8" r="1.5" /><path d="M8 4.5v7M9.5 8H11.5" />
++    </svg>
++  ),
++  download: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M8 2v9M4 8l4 4 4-4M2 14h12" />
++    </svg>
++  ),
++  upload: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M8 11V2M4 5l4-4 4 4M2 14h12" />
++    </svg>
++  ),
++  globe: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="8" cy="8" r="6" /><path d="M2 8h12M8 2c2.2 2 3 4 3 6s-.8 4-3 6c-2.2-2-3-4-3-6s.8-4 3-6z" />
++    </svg>
++  ),
++  brain: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M8 14V8M5 8c-2 0-3-1.5-3-3s1.5-3 3-3c.5 0 1 .1 1.5.3C7 1.5 7.5 1 8 1s1 .5 1.5 1.3C10 2.1 10.5 2 11 2c1.5 0 3 1.5 3 3s-1 3-3 3" />
++    </svg>
++  ),
++  check: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
++      <path d="M3 8l3.5 3.5L13 4" />
++    </svg>
++  ),
++  error: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="8" cy="8" r="6" /><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" />
++    </svg>
++  ),
++  warning: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M8 1L1 14h14L8 1zM8 6v4M8 12v.5" />
++    </svg>
++  ),
++  docker: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <rect x="1" y="6" width="14" height="8" rx="1" /><rect x="3" y="8" width="2" height="2" /><rect x="7" y="8" width="2" height="2" /><rect x="11" y="8" width="2" height="2" /><rect x="5" y="3" width="2" height="3" /><rect x="9" y="4" width="2" height="2" />
++    </svg>
++  ),
++  key: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="5" cy="8" r="3" /><path d="M8 8h6M12 6v4M14 7v2" />
++    </svg>
++  ),
++  network: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="8" cy="3" r="2" /><circle cx="3" cy="13" r="2" /><circle cx="13" cy="13" r="2" /><path d="M8 5v3M5.5 11.5L7 8M10.5 11.5L9 8" />
++    </svg>
++  ),
++  database: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <ellipse cx="8" cy="3" rx="5" ry="2" /><path d="M3 3v10c0 1.1 2.2 2 5 2s5-.9 5-2V3M3 8c0 1.1 2.2 2 5 2s5-.9 5-2" />
++    </svg>
++  ),
++  lock: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 016 0v2" />
++    </svg>
++  ),
++  package: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M1 4l7-3 7 3v8l-7 3-7-3V4zM1 4l7 3 7-3M8 7v8" />
++    </svg>
++  ),
++  test: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M6 2v4l-4 6a1 1 0 001 1h10a1 1 0 001-1L10 6V2M5 2h6" />
++    </svg>
++  ),
++  play: (
++    <svg viewBox="0 0 16 16" fill="currentColor">
++      <path d="M4 2l10 6-10 6V2z" />
++    </svg>
++  ),
++  copy: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <rect x="5" y="5" width="8" height="8" rx="1" /><path d="M3 11V3a1 1 0 011-1h8" />
++    </svg>
++  ),
++  trash: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M4 4l1 10h6l1-10" />
++    </svg>
++  ),
++  move: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M4 8h8M9 5l3 3-3 3" />
++    </svg>
++  ),
++  archive: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <rect x="2" y="2" width="12" height="3" rx="1" /><path d="M3 5v8a1 1 0 001 1h8a1 1 0 001-1V5M6 8h4" />
++    </svg>
++  ),
++  diff: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M4 4h3M4 8h8M4 12h5M12 4v4" />
++    </svg>
++  ),
++  shield: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M8 1L2 4v4c0 4 2.5 6 6 7 3.5-1 6-3 6-7V4L8 1z" />
++    </svg>
++  ),
++  clock: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="8" cy="8" r="6" /><path d="M8 4v4l3 2" />
++    </svg>
++  ),
++  link: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M7 9l2-2M5 11l-1 1a2 2 0 010-3l2-2a2 2 0 013 0M11 5l1-1a2 2 0 010 3l-2 2a2 2 0 01-3 0" />
++    </svg>
++  ),
++  refresh: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M2 8a6 6 0 0111-3M14 8a6 6 0 01-11 3M13 2v3h-3M3 14v-3h3" />
++    </svg>
++  ),
++  settings: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <circle cx="8" cy="8" r="2" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" />
++    </svg>
++  ),
++  zap: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M9 1L3 9h5l-1 6 6-8H8l1-6z" />
++    </svg>
++  ),
++  layers: (
++    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
++      <path d="M8 1L1 5l7 4 7-4-7-4zM1 8l7 4 7-4M1 11l7 4 7-4" />
++    </svg>
++  ),
++};
++
++// ── 50+ Command Type Definitions ─────────────────────────────────
++const COMMAND_TYPES = {
++  // ─ SSE Protocol Events ─
++  message_start:    { label: "Message Start",         icon: "play",     color: "#22c55e", category: "protocol" },
++  message_stop:     { label: "Message Stop",          icon: "check",    color: "#6b7280", category: "protocol" },
++  message_delta:    { label: "Message Delta",         icon: "zap",      color: "#a855f7", category: "protocol" },
++  message_limit:    { label: "Rate Limit Status",     icon: "shield",   color: "#eab308", category: "protocol" },
++  content_block_start: { label: "Block Start",        icon: "play",     color: "#3b82f6", category: "protocol" },
++  content_block_stop:  { label: "Block Stop",         icon: "check",    color: "#6b7280", category: "protocol" },
++  content_block_delta: { label: "Block Delta",        icon: "zap",      color: "#8b5cf6", category: "protocol" },
++
++  // ─ Content Block Types ─
++  thinking:         { label: "Thinking",              icon: "brain",    color: "#f59e0b", category: "cognition" },
++  thinking_delta:   { label: "Thinking Stream",       icon: "brain",    color: "#f59e0b", category: "cognition" },
++  thinking_summary: { label: "Thinking Summary",      icon: "brain",    color: "#d97706", category: "cognition" },
++  text:             { label: "Text Response",          icon: "file",     color: "#06b6d4", category: "output" },
++  text_delta:       { label: "Text Stream",            icon: "file",     color: "#06b6d4", category: "output" },
++
++  // ─ Tool Use Core ─
++  tool_use:         { label: "Tool Invocation",        icon: "zap",      color: "#8b5cf6", category: "tool" },
++  tool_result:      { label: "Tool Result",            icon: "check",    color: "#22c55e", category: "tool" },
++  tool_error:       { label: "Tool Error",             icon: "error",    color: "#ef4444", category: "tool" },
++  input_json_delta: { label: "Input Streaming",        icon: "zap",      color: "#a78bfa", category: "tool" },
++  tool_update:      { label: "Tool Status Update",     icon: "refresh",  color: "#8b5cf6", category: "tool" },
++
++  // ─ File Operations ─
++  bash_tool:        { label: "Shell Command",          icon: "terminal", color: "#22c55e", category: "shell" },
++  str_replace:      { label: "Edit File",              icon: "edit",     color: "#f97316", category: "file_op" },
++  view:             { label: "View File",              icon: "file",     color: "#3b82f6", category: "file_op" },
++  create_file:      { label: "Create File",            icon: "file",     color: "#10b981", category: "file_op" },
++  present_files:    { label: "Present Files",          icon: "upload",   color: "#06b6d4", category: "file_op" },
++  cat_file:         { label: "Read File (cat)",        icon: "file",     color: "#3b82f6", category: "file_op" },
++  mkdir:            { label: "Create Directory",       icon: "folder",   color: "#10b981", category: "file_op" },
++  rm_delete:        { label: "Delete File",            icon: "trash",    color: "#ef4444", category: "file_op" },
++  mv_move:          { label: "Move / Rename",          icon: "move",     color: "#f97316", category: "file_op" },
++  cp_copy:          { label: "Copy File",              icon: "copy",     color: "#3b82f6", category: "file_op" },
++  chmod:            { label: "Change Permissions",     icon: "lock",     color: "#eab308", category: "file_op" },
++  tree:             { label: "Directory Tree",         icon: "folder",   color: "#10b981", category: "file_op" },
++
++  // ─ Search & Navigation ─
++  grep_search:      { label: "Search in Files (grep)", icon: "search",   color: "#a855f7", category: "search" },
++  find_files:       { label: "Find Files",             icon: "search",   color: "#8b5cf6", category: "search" },
++  web_search:       { label: "Web Search",             icon: "globe",    color: "#3b82f6", category: "search" },
++  web_fetch:        { label: "Fetch URL",              icon: "globe",    color: "#06b6d4", category: "search" },
++  sed_replace:      { label: "Stream Edit (sed)",      icon: "edit",     color: "#f97316", category: "search" },
++  awk_process:      { label: "Text Process (awk)",     icon: "layers",   color: "#d97706", category: "search" },
++
++  // ─ Git Operations ─
++  git_clone:        { label: "Git Clone",              icon: "git",      color: "#f97316", category: "git" },
++  git_commit:       { label: "Git Commit",             icon: "git",      color: "#22c55e", category: "git" },
++  git_push:         { label: "Git Push",               icon: "git",      color: "#3b82f6", category: "git" },
++  git_pull:         { label: "Git Pull",               icon: "git",      color: "#06b6d4", category: "git" },
++  git_diff:         { label: "Git Diff",               icon: "diff",     color: "#f59e0b", category: "git" },
++  git_status:       { label: "Git Status",             icon: "git",      color: "#a855f7", category: "git" },
++  git_log:          { label: "Git Log",                icon: "git",      color: "#8b5cf6", category: "git" },
++  git_branch:       { label: "Git Branch",             icon: "git",      color: "#10b981", category: "git" },
++  git_checkout:     { label: "Git Checkout",           icon: "git",      color: "#d97706", category: "git" },
++  git_merge:        { label: "Git Merge",              icon: "git",      color: "#ef4444", category: "git" },
++  git_stash:        { label: "Git Stash",              icon: "git",      color: "#6b7280", category: "git" },
++  git_rebase:       { label: "Git Rebase",             icon: "git",      color: "#ec4899", category: "git" },
++
++  // ─ Package & Environment ─
++  pip_install:      { label: "pip install",            icon: "package",  color: "#3b82f6", category: "package" },
++  npm_install:      { label: "npm install",            icon: "package",  color: "#ef4444", category: "package" },
++  docker_build:     { label: "Docker Build",           icon: "docker",   color: "#06b6d4", category: "container" },
++  docker_run:       { label: "Docker Run",             icon: "docker",   color: "#3b82f6", category: "container" },
++
++  // ─ Execution & Testing ─
++  python_exec:      { label: "Python Execute",         icon: "play",     color: "#eab308", category: "exec" },
++  node_exec:        { label: "Node.js Execute",        icon: "play",     color: "#22c55e", category: "exec" },
++  pytest_run:       { label: "Pytest Run",             icon: "test",     color: "#a855f7", category: "exec" },
++
++  // ─ Network & Transfer ─
++  curl_fetch:       { label: "HTTP Request (curl)",    icon: "globe",    color: "#06b6d4", category: "network" },
++  ssh_connect:      { label: "SSH Connect",            icon: "key",      color: "#f59e0b", category: "network" },
++  scp_transfer:     { label: "SCP Transfer",           icon: "network",  color: "#10b981", category: "network" },
++  wget_download:    { label: "Download (wget)",        icon: "download", color: "#3b82f6", category: "network" },
++
++  // ─ Archive & Patch ─
++  tar_archive:      { label: "Archive (tar)",          icon: "archive",  color: "#6b7280", category: "archive" },
++  diff_compare:     { label: "Diff Compare",           icon: "diff",     color: "#f97316", category: "archive" },
++  patch_apply:      { label: "Apply Patch",            icon: "edit",     color: "#10b981", category: "archive" },
++
++  // ─ Database ─
++  db_query:         { label: "Database Query",         icon: "database", color: "#3b82f6", category: "database" },
++  db_migrate:       { label: "DB Migration",           icon: "database", color: "#f97316", category: "database" },
++};
++
++const CATEGORY_META = {
++  protocol:  { label: "SSE Protocol",     bg: "#1e1b4b" },
++  cognition: { label: "Cognition",        bg: "#451a03" },
++  output:    { label: "Text Output",      bg: "#083344" },
++  tool:      { label: "Tool Framework",   bg: "#2e1065" },
++  shell:     { label: "Shell",            bg: "#052e16" },
++  file_op:   { label: "File Operations",  bg: "#1c1917" },
++  search:    { label: "Search & Process", bg: "#1e1b4b" },
++  git:       { label: "Git Operations",   bg: "#431407" },
++  package:   { label: "Packages",         bg: "#172554" },
++  container: { label: "Containers",       bg: "#083344" },
++  exec:      { label: "Execution",        bg: "#1a2e05" },
++  network:   { label: "Network",          bg: "#083344" },
++  archive:   { label: "Archive & Patch",  bg: "#1c1917" },
++  database:  { label: "Database",         bg: "#172554" },
++};
++
++// ── Generate demo events from real eventStream data patterns ────
++function generateDemoEvents() {
++  const events = [
++    // 1 - message_start
++    { type: "message_start", ts: "07:53:53.000", data: { id: "chatcompl_01QHmkgUTc8E52oNmkKFYKnU", model: "claude-opus-4-20250514", role: "assistant" } },
++    // 2 - thinking
++    { type: "thinking", ts: "07:53:53.761", data: { text: "Let me fix the conftest.py to add the missing verl stubs, then run all tests to confirm they fail, then proceed with implementation." } },
++    // 3 - thinking_summary
++    { type: "thinking_summary", ts: "07:53:54.465", data: { summary: "Orchestrated test framework setup and implementation strategy." } },
++    // 4 - str_replace
++    { type: "str_replace", ts: "07:53:54.690", data: { message: "Add verl.utils and related stubs to conftest.py", path: "/home/claude/operatorRL/tests/tdd_m51_m60/conftest.py", icon: "edit", status: "success", result: "Successfully replaced string" } },
++    // 5 - bash_tool (pytest)
++    { type: "bash_tool", ts: "07:54:05.017", data: { message: "Running pytest to verify test failures", command: "cd /home/claude/operatorRL && python -m pytest tests/tdd_m51_m60/ -v --tb=short 2>&1 | head -60", icon: "commandLine", status: "complete", result: "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.0.2\ncollected 99 items\n\ntests/tdd_m51_m60/test_m51.py::test_trainium_config FAILED\ntests/tdd_m51_m60/test_m52.py::test_nxd_parallel FAILED\ntests/tdd_m51_m60/test_m53.py::test_checkpoint PASSED\n\n52 failed, 47 passed in 12.34s" } },
++    // 6 - view
++    { type: "view", ts: "07:54:59.550", data: { message: "Viewing conftest.py", path: "/home/claude/operatorRL/tests/tdd_m51_m60/conftest.py", icon: "file", language: "python", result: "# TDD M51-M60 conftest — stub heavy GPU dependencies\nimport pytest\nimport sys\nfrom unittest.mock import MagicMock\n\n# Stub verl modules\nsys.modules['verl'] = MagicMock()\nsys.modules['verl.utils'] = MagicMock()" } },
++    // 7 - create_file
++    { type: "create_file", ts: "07:55:10.000", data: { message: "Creating test module for M54", path: "/home/claude/operatorRL/tests/tdd_m51_m60/test_m54.py", icon: "file", status: "created" } },
++    // 8 - thinking_delta
++    { type: "thinking_delta", ts: "07:55:12.100", data: { text: "Now I need to analyze why M51 and M52 tests failed. The issue is likely missing Trainium2 hardware stubs..." } },
++    // 9 - text
++    { type: "text", ts: "07:55:15.000", data: { text: "I've analyzed the test failures. 52 out of 99 tests failed (52.5% failure rate), which aligns with our TDD target of ~50%. Now implementing the fixes..." } },
++    // 10 - text_delta
++    { type: "text_delta", ts: "07:55:15.200", data: { text: "Starting with M51 Trainium2 adaptation module..." } },
++    // 11 - git_status
++    { type: "git_status", ts: "07:55:20.000", data: { message: "Checking repository status", command: "git status --short", result: "M  tests/tdd_m51_m60/conftest.py\nA  tests/tdd_m51_m60/test_m54.py\nA  tests/tdd_m51_m60/test_m55.py\n?? tests/tdd_m51_m60/test_m56.py" } },
++    // 12 - git_diff
++    { type: "git_diff", ts: "07:55:22.000", data: { message: "Viewing staged changes", command: "git diff --stat", result: " conftest.py | 45 +++++++++++++++----\n test_m54.py | 120 ++++++++++++++++++++++++++++\n test_m55.py |  98 +++++++++++++++++++++++\n 3 files changed, 253 insertions(+), 10 deletions(-)" } },
++    // 13 - git_commit
++    { type: "git_commit", ts: "07:55:25.000", data: { message: "Committing TDD test suite", command: "git commit -m 'test(tdd): add 99 TDD tests for M51-M60'", result: "[master dc472e3] test(tdd): add 99 TDD tests for M51-M60\n 12 files changed, 910 insertions(+)" } },
++    // 14 - git_push
++    { type: "git_push", ts: "07:55:30.000", data: { message: "Pushing to remote", command: "git push origin master", result: "Enumerating objects: 18, done.\nCounting objects: 100% (18/18)\nWriting objects: 100% (15/15), 12.3 KiB\nTo github.com/dylanyunlon/skynetCheapBuy.git\n   a1b2c3d..dc472e3  master -> master" } },
++    // 15 - git_pull
++    { type: "git_pull", ts: "07:55:35.000", data: { message: "Pulling latest changes", command: "git pull origin master", result: "Already up to date." } },
++    // 16 - git_clone
++    { type: "git_clone", ts: "07:55:38.000", data: { message: "Cloning repository", command: "git clone github.com/dylanyunlon/skynetFronted.git", result: "Cloning into 'skynetFronted'...\nremote: Enumerating objects: 347, done.\nReceiving objects: 100% (347/347), 2.1 MiB" } },
++    // 17 - git_branch
++    { type: "git_branch", ts: "07:55:40.000", data: { message: "Listing branches", command: "git branch -a", result: "* master\n  feature/agentic-loop\n  remotes/origin/master\n  remotes/origin/feature/agentic-loop" } },
++    // 18 - git_checkout
++    { type: "git_checkout", ts: "07:55:42.000", data: { message: "Switching branch", command: "git checkout -b feature/tdd-m51-m60", result: "Switched to a new branch 'feature/tdd-m51-m60'" } },
++    // 19 - git_log
++    { type: "git_log", ts: "07:55:44.000", data: { message: "Viewing commit history", command: "git log --oneline -5", result: "dc472e3 test(tdd): add 99 TDD tests for M51-M60\na1b2c3d feat: add Trainium2 adapter base\n9e8f7d6 fix: resolve import path for verl\n5c4b3a2 refactor: modularize agent loop\n1d2e3f4 initial commit" } },
++    // 20 - git_merge
++    { type: "git_merge", ts: "07:55:46.000", data: { message: "Merging feature branch", command: "git merge feature/agentic-loop", result: "Merge made by the 'ort' strategy.\n src/agent_loop.py | 234 ++++++++++\n 1 file changed, 234 insertions(+)" } },
++    // 21 - git_stash
++    { type: "git_stash", ts: "07:55:48.000", data: { message: "Stashing changes", command: "git stash push -m 'WIP: M56 tests'", result: "Saved working directory and index state On feature/tdd-m51-m60: WIP: M56 tests" } },
++    // 22 - git_rebase
++    { type: "git_rebase", ts: "07:55:50.000", data: { message: "Rebasing onto master", command: "git rebase master", result: "Successfully rebased and updated refs/heads/feature/tdd-m51-m60." } },
++    // 23 - pip_install
++    { type: "pip_install", ts: "07:56:00.000", data: { message: "Installing Python packages", command: "pip install torch verl --break-system-packages", result: "Successfully installed torch-2.3.0 verl-0.2.1" } },
++    // 24 - npm_install
++    { type: "npm_install", ts: "07:56:10.000", data: { message: "Installing Node packages", command: "npm install react react-dom", result: "added 3 packages in 2.4s" } },
++    // 25 - python_exec
++    { type: "python_exec", ts: "07:56:15.000", data: { message: "Executing Python script", command: "python3 src/validate_model.py", result: "Model validation complete.\nParameters: 7,234,567\nMemory: 2.3 GB\nAll checks passed ✓" } },
++    // 26 - node_exec
++    { type: "node_exec", ts: "07:56:20.000", data: { message: "Running Node.js build", command: "node build.js", result: "Build complete. Output: dist/bundle.js (145 KB)" } },
++    // 27 - pytest_run
++    { type: "pytest_run", ts: "07:56:25.000", data: { message: "Running test suite", command: "python -m pytest tests/ -v", result: "99 passed, 0 failed, 0 errors in 8.67s\n\nAll tests passing ✓", status: "pass" } },
++    // 28 - docker_build
++    { type: "docker_build", ts: "07:56:30.000", data: { message: "Building Docker image", command: "docker build -t skynet-agent:latest .", result: "Step 1/8: FROM python:3.12-slim\nStep 8/8: CMD [\"python\", \"main.py\"]\nSuccessfully built a1b2c3d4e5f6\nSuccessfully tagged skynet-agent:latest" } },
++    // 29 - docker_run
++    { type: "docker_run", ts: "07:56:35.000", data: { message: "Running container", command: "docker run -d --name skynet skynet-agent:latest", result: "Container started: a1b2c3d4e5f6789..." } },
++    // 30 - web_search
++    { type: "web_search", ts: "07:56:40.000", data: { message: "Searching for Trainium2 documentation", query: "AWS Trainium2 NxD parallel config", results: 3 } },
++    // 31 - web_fetch
++    { type: "web_fetch", ts: "07:56:45.000", data: { message: "Fetching Claude Code agent loop docs", url: "claudecn.com/en/docs/claude-code/advanced/agent-loop", status: 200 } },
++    // 32 - curl_fetch
++    { type: "curl_fetch", ts: "07:56:50.000", data: { message: "HTTP API request", command: "curl -s https://api.example.com/health", result: '{"status":"healthy","uptime":"99.9%"}' } },
++    // 33 - ssh_connect
++    { type: "ssh_connect", ts: "07:56:55.000", data: { message: "Connecting to Aliyun server", host: "47.xxx.xxx.xxx", user: "root", result: "Connected to production server" } },
++    // 34 - scp_transfer
++    { type: "scp_transfer", ts: "07:57:00.000", data: { message: "Transferring build artifacts", command: "scp dist/* root@47.xxx.xxx.xxx:/opt/skynet/", result: "Transferred 3 files (2.1 MB)" } },
++    // 35 - wget_download
++    { type: "wget_download", ts: "07:57:05.000", data: { message: "Downloading model weights", command: "wget https://models.example.com/v2.bin", result: "100% [===============>] 1.2 GB  --  12.3 MB/s  ETA 0s" } },
++    // 36 - grep_search
++    { type: "grep_search", ts: "07:57:10.000", data: { message: "Searching for import references", command: "grep -rn 'from verl' src/", result: "src/trainer.py:3: from verl.trainer import PPOTrainer\nsrc/worker.py:1: from verl.workers import ActorWorker\nsrc/config.py:7: from verl.utils import ConfigManager" } },
++    // 37 - find_files
++    { type: "find_files", ts: "07:57:15.000", data: { message: "Finding Python test files", command: "find tests/ -name 'test_*.py' -type f", result: "tests/tdd_m51_m60/test_m51.py\ntests/tdd_m51_m60/test_m52.py\ntests/tdd_m51_m60/test_m53.py\ntests/tdd_m51_m60/test_m54.py\ntests/tdd_m51_m60/test_m55.py" } },
++    // 38 - tree
++    { type: "tree", ts: "07:57:20.000", data: { message: "Viewing project structure", command: "tree -L 2", result: ".\n├── src/\n│   ├── agent_loop.py\n│   ├── trainer.py\n│   └── worker.py\n├── tests/\n│   └── tdd_m51_m60/\n├── Dockerfile\n├── requirements.txt\n└── README.md" } },
++    // 39 - cat_file
++    { type: "cat_file", ts: "07:57:25.000", data: { message: "Reading configuration", command: "cat config.yaml", result: "model:\n  name: skynet-agent-v2\n  backend: trainium2\ntraining:\n  batch_size: 32\n  learning_rate: 3e-4" } },
++    // 40 - mkdir
++    { type: "mkdir", ts: "07:57:30.000", data: { message: "Creating output directory", command: "mkdir -p outputs/checkpoints", result: "" } },
++    // 41 - rm_delete
++    { type: "rm_delete", ts: "07:57:32.000", data: { message: "Removing stale cache", command: "rm -rf .pytest_cache __pycache__", result: "" } },
++    // 42 - mv_move
++    { type: "mv_move", ts: "07:57:34.000", data: { message: "Renaming module", command: "mv src/old_agent.py src/agent_loop.py", result: "" } },
++    // 43 - cp_copy
++    { type: "cp_copy", ts: "07:57:36.000", data: { message: "Backing up config", command: "cp config.yaml config.yaml.bak", result: "" } },
++    // 44 - chmod
++    { type: "chmod", ts: "07:57:38.000", data: { message: "Setting executable permission", command: "chmod +x scripts/deploy.sh", result: "" } },
++    // 45 - sed_replace
++    { type: "sed_replace", ts: "07:57:40.000", data: { message: "Updating version string", command: "sed -i 's/v0.1.0/v0.2.0/g' setup.py", result: "" } },
++    // 46 - awk_process
++    { type: "awk_process", ts: "07:57:42.000", data: { message: "Extracting test metrics", command: "awk '/FAILED|PASSED/ {print $1, $2}' test_output.log", result: "test_m51.py FAILED\ntest_m52.py FAILED\ntest_m53.py PASSED" } },
++    // 47 - tar_archive
++    { type: "tar_archive", ts: "07:57:44.000", data: { message: "Creating release archive", command: "tar czf release-v0.2.0.tar.gz dist/", result: "Created: release-v0.2.0.tar.gz (4.2 MB)" } },
++    // 48 - diff_compare
++    { type: "diff_compare", ts: "07:57:46.000", data: { message: "Comparing implementations", command: "diff -u old_trainer.py new_trainer.py", result: "--- old_trainer.py\n+++ new_trainer.py\n@@ -15,6 +15,12 @@\n+    def evolve(self):\n+        \"\"\"Self-evolution step\"\"\"\n+        metrics = self.evaluate()\n+        self.adapt(metrics)" } },
++    // 49 - patch_apply
++    { type: "patch_apply", ts: "07:57:48.000", data: { message: "Applying hotfix patch", command: "git apply hotfix-001.patch", result: "Applied patch cleanly." } },
++    // 50 - db_query
++    { type: "db_query", ts: "07:57:50.000", data: { message: "Querying training metrics", command: "SELECT epoch, loss, accuracy FROM training_log ORDER BY epoch DESC LIMIT 5", result: "epoch | loss   | accuracy\n  100 | 0.0234 | 97.8%\n   99 | 0.0241 | 97.6%\n   98 | 0.0256 | 97.3%" } },
++    // 51 - db_migrate
++    { type: "db_migrate", ts: "07:57:52.000", data: { message: "Running database migration", command: "alembic upgrade head", result: "Running upgrade 001 -> 002: add evolution_metadata table\nDone." } },
++    // 52 - present_files
++    { type: "present_files", ts: "07:57:55.000", data: { message: "Presenting output files", files: ["outputs/report.md", "outputs/test_results.html"], result: "Presented 2 files" } },
++    // 53 - tool_error
++    { type: "tool_error", ts: "07:57:58.000", data: { message: "File not found", error: "FileNotFoundError: /home/claude/missing_file.py", tool: "view" } },
++    // 54 - message_limit
++    { type: "message_limit", ts: "07:58:00.000", data: { status: "within_limit", utilization_5h: 0.04, utilization_7d: 0.68, remaining: null } },
++    // 55 - message_delta
++    { type: "message_delta", ts: "07:58:01.000", data: { stop_reason: "tool_use_limit" } },
++    // 56 - message_stop
++    { type: "message_stop", ts: "07:58:02.000", data: {} },
++  ];
++  return events;
++}
++
++// ── Collapsible Panel ────────────────────────────────────────────
++function CollapsibleBlock({ type, event, index, isExpanded, onToggle }) {
++  const cmdDef = COMMAND_TYPES[type] || { label: type, icon: "zap", color: "#6b7280", category: "tool" };
++  const catMeta = CATEGORY_META[cmdDef.category] || { label: "Other", bg: "#1c1917" };
++  const IconSvg = Icons[cmdDef.icon] || Icons.zap;
++
++  const isError = type === "tool_error" || event.data?.is_error;
++  const isSuccess = event.data?.status === "success" || event.data?.status === "pass" || type === "tool_result";
++
++  return (
++    <div style={{
++      marginBottom: 2,
++      borderRadius: 8,
++      overflow: "hidden",
++      border: `1px solid ${isError ? "rgba(239,68,68,0.3)" : isExpanded ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)"}`,
++      background: isExpanded ? "rgba(255,255,255,0.03)" : "transparent",
++      transition: "all 0.2s ease",
++    }}>
++      {/* Header */}
++      <button
++        onClick={onToggle}
++        style={{
++          width: "100%",
++          display: "flex",
++          alignItems: "center",
++          gap: 10,
++          padding: "10px 14px",
++          background: "none",
++          border: "none",
++          cursor: "pointer",
++          color: "#e2e8f0",
++          fontFamily: "'IBM Plex Mono', 'Fira Code', monospace",
++          fontSize: 13,
++          textAlign: "left",
++        }}
++      >
++        {/* Icon */}
++        <span style={{
++          width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
++          color: cmdDef.color, flexShrink: 0, opacity: 0.9,
++        }}>
++          {IconSvg}
++        </span>
++
++        {/* Label */}
++        <span style={{ fontWeight: 600, color: cmdDef.color, minWidth: 140 }}>
++          {cmdDef.label}
++        </span>
++
++        {/* Message / Description */}
++        <span style={{ flex: 1, color: "rgba(255,255,255,0.55)", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
++          {event.data?.message || event.data?.command || event.data?.path || event.data?.text?.slice(0, 80) || ""}
++        </span>
++
++        {/* Status badge */}
++        {isError && (
++          <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "rgba(239,68,68,0.2)", color: "#fca5a5", fontWeight: 600 }}>
++            ERROR
++          </span>
++        )}
++        {isSuccess && (
++          <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "rgba(34,197,94,0.2)", color: "#86efac", fontWeight: 600 }}>
++            ✓
++          </span>
++        )}
++
++        {/* Timestamp */}
++        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
++          {event.ts}
++        </span>
++
++        {/* Chevron */}
++        <span style={{
++          fontSize: 11, color: "rgba(255,255,255,0.3)", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
++          transition: "transform 0.15s ease", flexShrink: 0,
++        }}>
++          ▶
++        </span>
++      </button>
++
++      {/* Expanded Content */}
++      {isExpanded && (
++        <div style={{
++          padding: "0 14px 12px 46px",
++          fontSize: 12,
++          lineHeight: 1.6,
++        }}>
++          {/* Command line */}
++          {event.data?.command && (
++            <div style={{
++              background: "rgba(0,0,0,0.4)",
++              borderRadius: 6,
++              padding: "8px 12px",
++              marginBottom: 8,
++              fontFamily: "'IBM Plex Mono', monospace",
++              color: "#22c55e",
++              fontSize: 11.5,
++              borderLeft: `3px solid ${cmdDef.color}`,
++            }}>
++              <span style={{ color: "rgba(255,255,255,0.4)" }}>$ </span>{event.data.command}
++            </div>
++          )}
++
++          {/* Path */}
++          {event.data?.path && (
++            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 6, fontSize: 11 }}>
++              📂 {event.data.path}
++            </div>
++          )}
++
++          {/* URL */}
++          {event.data?.url && (
++            <div style={{ color: "#38bdf8", marginBottom: 6, fontSize: 11 }}>
++              🔗 {event.data.url}
++            </div>
++          )}
++
++          {/* Query */}
++          {event.data?.query && (
++            <div style={{ color: "#c4b5fd", marginBottom: 6, fontSize: 11 }}>
++              🔍 {event.data.query} — {event.data.results} results
++            </div>
++          )}
++
++          {/* Files list */}
++          {event.data?.files && (
++            <div style={{ marginBottom: 6 }}>
++              {event.data.files.map((f, i) => (
++                <div key={i} style={{ color: "#38bdf8", fontSize: 11 }}>📄 {f}</div>
++              ))}
++            </div>
++          )}
++
++          {/* Error */}
++          {event.data?.error && (
++            <div style={{
++              background: "rgba(239,68,68,0.1)",
++              borderRadius: 6,
++              padding: "8px 12px",
++              color: "#fca5a5",
++              fontFamily: "'IBM Plex Mono', monospace",
++              fontSize: 11,
++              borderLeft: "3px solid #ef4444",
++            }}>
++              {event.data.error}
++            </div>
++          )}
++
++          {/* Result output */}
++          {event.data?.result && (
++            <pre style={{
++              background: "rgba(0,0,0,0.5)",
++              borderRadius: 6,
++              padding: "10px 12px",
++              color: "rgba(255,255,255,0.75)",
++              fontFamily: "'IBM Plex Mono', monospace",
++              fontSize: 11,
++              lineHeight: 1.5,
++              whiteSpace: "pre-wrap",
++              wordBreak: "break-all",
++              margin: 0,
++              maxHeight: 220,
++              overflowY: "auto",
++            }}>
++              {event.data.result}
++            </pre>
++          )}
++
++          {/* Text content (thinking, text blocks) */}
++          {event.data?.text && !event.data?.result && (
++            <div style={{
++              color: "rgba(255,255,255,0.65)",
++              fontStyle: type.includes("thinking") ? "italic" : "normal",
++              padding: "4px 0",
++              borderLeft: type.includes("thinking") ? "3px solid rgba(245,158,11,0.4)" : "none",
++              paddingLeft: type.includes("thinking") ? 12 : 0,
++            }}>
++              {event.data.text}
++            </div>
++          )}
++
++          {/* Summary */}
++          {event.data?.summary && (
++            <div style={{
++              color: "#fbbf24", fontSize: 11.5, fontStyle: "italic",
++              borderLeft: "3px solid rgba(245,158,11,0.3)", paddingLeft: 10,
++            }}>
++              {event.data.summary}
++            </div>
++          )}
++
++          {/* Rate limit info */}
++          {event.data?.utilization_5h !== undefined && (
++            <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
++              <LimitBar label="5h window" value={event.data.utilization_5h} />
++              <LimitBar label="7d window" value={event.data.utilization_7d} />
++            </div>
++          )}
++
++          {/* Stop reason */}
++          {event.data?.stop_reason && (
++            <div style={{ color: "#a78bfa", fontSize: 11 }}>
++              Stop reason: <strong>{event.data.stop_reason}</strong>
++            </div>
++          )}
++
++          {/* Host info */}
++          {event.data?.host && (
++            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
++              🖥 {event.data.user}@{event.data.host}
++            </div>
++          )}
++
++          {/* Model info */}
++          {event.data?.model && (
++            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
++              🤖 Model: {event.data.model} | ID: {event.data.id}
++            </div>
++          )}
++        </div>
++      )}
++    </div>
++  );
++}
++
++function LimitBar({ label, value }) {
++  const pct = Math.round(value * 100);
++  const color = pct > 80 ? "#ef4444" : pct > 50 ? "#eab308" : "#22c55e";
++  return (
++    <div style={{ flex: 1 }}>
++      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>{label}</div>
++      <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.1)", overflow: "hidden" }}>
++        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 3, transition: "width 0.5s ease" }} />
++      </div>
++      <div style={{ fontSize: 10, color, marginTop: 2 }}>{pct}%</div>
++    </div>
++  );
++}
++
++// ── Category Filter Chip ─────────────────────────────────────────
++function CategoryChip({ catKey, meta, active, onClick, count }) {
++  return (
++    <button
++      onClick={onClick}
++      style={{
++        display: "inline-flex",
++        alignItems: "center",
++        gap: 6,
++        padding: "5px 12px",
++        borderRadius: 99,
++        border: active ? "1px solid rgba(255,255,255,0.25)" : "1px solid rgba(255,255,255,0.08)",
++        background: active ? "rgba(255,255,255,0.1)" : "transparent",
++        color: active ? "#e2e8f0" : "rgba(255,255,255,0.4)",
++        cursor: "pointer",
++        fontSize: 11,
++        fontFamily: "'IBM Plex Mono', monospace",
++        fontWeight: active ? 600 : 400,
++        transition: "all 0.15s ease",
++        whiteSpace: "nowrap",
++      }}
++    >
++      {meta.label}
++      <span style={{
++        fontSize: 10,
++        padding: "1px 6px",
++        borderRadius: 99,
++        background: active ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)",
++      }}>
++        {count}
++      </span>
++    </button>
++  );
++}
++
++// ── Command Type Reference Card ──────────────────────────────────
++function TypeReferenceGrid({ filter }) {
++  const entries = Object.entries(COMMAND_TYPES).filter(
++    ([, v]) => !filter || v.category === filter
++  );
++  return (
++    <div style={{
++      display: "grid",
++      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
++      gap: 6,
++      marginBottom: 20,
++    }}>
++      {entries.map(([key, def]) => (
++        <div key={key} style={{
++          display: "flex",
++          alignItems: "center",
++          gap: 8,
++          padding: "7px 10px",
++          borderRadius: 6,
++          background: "rgba(255,255,255,0.02)",
++          border: "1px solid rgba(255,255,255,0.06)",
++          fontSize: 11,
++          fontFamily: "'IBM Plex Mono', monospace",
++        }}>
++          <span style={{ width: 16, height: 16, color: def.color, flexShrink: 0, display: "flex" }}>
++            {Icons[def.icon] || Icons.zap}
++          </span>
++          <span style={{ color: def.color, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
++            {def.label}
++          </span>
++          <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.2)", fontSize: 9, flexShrink: 0 }}>
++            {CATEGORY_META[def.category]?.label}
++          </span>
++        </div>
++      ))}
++    </div>
++  );
++}
++
++// ── Main App ─────────────────────────────────────────────────────
++export default function AgenticLoopDisplay() {
++  const [events] = useState(generateDemoEvents);
++  const [expandedSet, setExpandedSet] = useState(new Set([0, 1, 3, 4, 5, 12, 13, 27, 36, 47, 53]));
++  const [activeFilter, setActiveFilter] = useState(null);
++  const [showReference, setShowReference] = useState(false);
++  const [searchQuery, setSearchQuery] = useState("");
++  const [viewMode, setViewMode] = useState("stream"); // stream | compact | reference
++
++  const toggleExpand = useCallback((i) => {
++    setExpandedSet(prev => {
++      const next = new Set(prev);
++      next.has(i) ? next.delete(i) : next.add(i);
++      return next;
++    });
++  }, []);
++
++  const expandAll = () => setExpandedSet(new Set(events.map((_, i) => i)));
++  const collapseAll = () => setExpandedSet(new Set());
++
++  // Count by category
++  const catCounts = {};
++  events.forEach(e => {
++    const def = COMMAND_TYPES[e.type];
++    if (def) {
++      catCounts[def.category] = (catCounts[def.category] || 0) + 1;
++    }
++  });
++
++  // Filter events
++  const filteredEvents = events.filter((e, i) => {
++    const def = COMMAND_TYPES[e.type];
++    if (activeFilter && def?.category !== activeFilter) return false;
++    if (searchQuery) {
++      const q = searchQuery.toLowerCase();
++      const searchable = [
++        e.type, def?.label, e.data?.message, e.data?.command,
++        e.data?.path, e.data?.text, e.data?.result
++      ].filter(Boolean).join(" ").toLowerCase();
++      if (!searchable.includes(q)) return false;
++    }
++    return true;
++  });
++
++  const totalTypes = Object.keys(COMMAND_TYPES).length;
++
++  return (
++    <div style={{
++      minHeight: "100vh",
++      background: "#0c0a13",
++      color: "#e2e8f0",
++      fontFamily: "'IBM Plex Mono', 'Fira Code', 'SF Mono', monospace",
++    }}>
++      {/* Google Fonts */}
++      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
++
++      {/* Header */}
++      <div style={{
++        position: "sticky",
++        top: 0,
++        zIndex: 100,
++        background: "rgba(12,10,19,0.92)",
++        backdropFilter: "blur(16px)",
++        borderBottom: "1px solid rgba(255,255,255,0.06)",
++        padding: "16px 24px",
++      }}>
++        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
++          {/* Logo */}
++          <div style={{
++            width: 36, height: 36, borderRadius: 10,
++            background: "linear-gradient(135deg, #8b5cf6, #06b6d4)",
++            display: "flex", alignItems: "center", justifyContent: "center",
++            fontSize: 18, fontWeight: 700, color: "#fff",
++          }}>
++            ⚡
++          </div>
++          <div>
++            <h1 style={{
++              margin: 0, fontSize: 18, fontWeight: 700,
++              fontFamily: "'Space Grotesk', sans-serif",
++              background: "linear-gradient(90deg, #c4b5fd, #67e8f9)",
++              WebkitBackgroundClip: "text",
++              WebkitTextFillColor: "transparent",
++            }}>
++              Agentic Loop — Event Stream Monitor
++            </h1>
++            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
++              {totalTypes} command types · {events.length} events captured · SSE Protocol v2
++            </div>
++          </div>
++
++          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
++            {["stream", "compact", "reference"].map(mode => (
++              <button key={mode} onClick={() => setViewMode(mode)} style={{
++                padding: "5px 14px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)",
++                background: viewMode === mode ? "rgba(139,92,246,0.2)" : "transparent",
++                color: viewMode === mode ? "#c4b5fd" : "rgba(255,255,255,0.4)",
++                cursor: "pointer", fontSize: 11, fontFamily: "inherit", textTransform: "capitalize",
++              }}>
++                {mode}
++              </button>
++            ))}
++          </div>
++        </div>
++
++        {/* Search & Controls */}
++        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
++          <div style={{
++            flex: 1, position: "relative", maxWidth: 400,
++          }}>
++            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "rgba(255,255,255,0.3)" }}>
++              {Icons.search}
++            </span>
++            <input
++              type="text"
++              placeholder="Filter events..."
++              value={searchQuery}
++              onChange={e => setSearchQuery(e.target.value)}
++              style={{
++                width: "100%",
++                padding: "7px 12px 7px 32px",
++                borderRadius: 6,
++                border: "1px solid rgba(255,255,255,0.1)",
++                background: "rgba(255,255,255,0.04)",
++                color: "#e2e8f0",
++                fontSize: 12,
++                fontFamily: "inherit",
++                outline: "none",
++              }}
++            />
++          </div>
++          <button onClick={expandAll} style={{
++            padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)",
++            background: "transparent", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 11, fontFamily: "inherit",
++          }}>
++            Expand All
++          </button>
++          <button onClick={collapseAll} style={{
++            padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)",
++            background: "transparent", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 11, fontFamily: "inherit",
++          }}>
++            Collapse All
++          </button>
++        </div>
++
++        {/* Category Chips */}
++        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
++          <CategoryChip
++            catKey={null}
++            meta={{ label: "All" }}
++            active={!activeFilter}
++            onClick={() => setActiveFilter(null)}
++            count={events.length}
++          />
++          {Object.entries(CATEGORY_META).map(([key, meta]) => (
++            catCounts[key] ? (
++              <CategoryChip
++                key={key}
++                catKey={key}
++                meta={meta}
++                active={activeFilter === key}
++                onClick={() => setActiveFilter(activeFilter === key ? null : key)}
++                count={catCounts[key]}
++              />
++            ) : null
++          ))}
++        </div>
++      </div>
++
++      {/* Content */}
++      <div style={{ padding: "16px 24px", maxWidth: 1100, margin: "0 auto" }}>
++        {viewMode === "reference" ? (
++          <>
++            <div style={{
++              fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 16,
++              fontFamily: "'Space Grotesk', sans-serif",
++            }}>
++              All {totalTypes} supported command types across {Object.keys(CATEGORY_META).length} categories:
++            </div>
++            <TypeReferenceGrid filter={activeFilter} />
++          </>
++        ) : viewMode === "compact" ? (
++          <div style={{
++            display: "grid",
++            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
++            gap: 8,
++          }}>
++            {filteredEvents.map((event, i) => {
++              const def = COMMAND_TYPES[event.type] || { label: event.type, icon: "zap", color: "#6b7280" };
++              const IconSvg = Icons[def.icon] || Icons.zap;
++              return (
++                <div key={i} style={{
++                  display: "flex",
++                  alignItems: "center",
++                  gap: 8,
++                  padding: "8px 12px",
++                  borderRadius: 6,
++                  background: "rgba(255,255,255,0.02)",
++                  border: "1px solid rgba(255,255,255,0.06)",
++                }}>
++                  <span style={{ width: 16, height: 16, color: def.color, flexShrink: 0 }}>{IconSvg}</span>
++                  <span style={{ color: def.color, fontWeight: 600, fontSize: 12 }}>{def.label}</span>
++                  <span style={{ flex: 1, color: "rgba(255,255,255,0.35)", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
++                    {event.data?.message || event.data?.command?.slice(0, 40) || ""}
++                  </span>
++                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", flexShrink: 0 }}>{event.ts}</span>
++                </div>
++              );
++            })}
++          </div>
++        ) : (
++          /* Stream View */
++          <div>
++            {/* Timeline connector */}
++            <div style={{ position: "relative" }}>
++              <div style={{
++                position: "absolute", left: 24, top: 0, bottom: 0, width: 1,
++                background: "linear-gradient(to bottom, rgba(139,92,246,0.3), rgba(6,182,212,0.3), rgba(34,197,94,0.1))",
++                zIndex: 0,
++              }} />
++              <div style={{ position: "relative", zIndex: 1 }}>
++                {filteredEvents.map((event, i) => {
++                  const origIdx = events.indexOf(event);
++                  return (
++                    <CollapsibleBlock
++                      key={origIdx}
++                      type={event.type}
++                      event={event}
++                      index={origIdx}
++                      isExpanded={expandedSet.has(origIdx)}
++                      onToggle={() => toggleExpand(origIdx)}
++                    />
++                  );
++                })}
++              </div>
++            </div>
++          </div>
++        )}
++
++        {/* Stats Footer */}
++        <div style={{
++          marginTop: 32,
++          padding: 20,
++          borderRadius: 10,
++          background: "rgba(255,255,255,0.02)",
++          border: "1px solid rgba(255,255,255,0.06)",
++          display: "grid",
++          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
++          gap: 16,
++        }}>
++          {[
++            { label: "Command Types", value: totalTypes, color: "#c4b5fd" },
++            { label: "Events Captured", value: events.length, color: "#67e8f9" },
++            { label: "Categories", value: Object.keys(CATEGORY_META).length, color: "#86efac" },
++            { label: "Tool Calls", value: events.filter(e => COMMAND_TYPES[e.type]?.category === "shell" || COMMAND_TYPES[e.type]?.category === "file_op" || COMMAND_TYPES[e.type]?.category === "git").length, color: "#fbbf24" },
++            { label: "Errors", value: events.filter(e => e.type === "tool_error").length, color: "#fca5a5" },
++            { label: "Thinking Blocks", value: events.filter(e => e.type.includes("thinking")).length, color: "#fde68a" },
++          ].map((stat, i) => (
++            <div key={i} style={{ textAlign: "center" }}>
++              <div style={{ fontSize: 28, fontWeight: 700, color: stat.color, fontFamily: "'Space Grotesk', sans-serif" }}>
++                {stat.value}
++              </div>
++              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>
++                {stat.label}
++              </div>
++            </div>
++          ))}
++        </div>
++      </div>
++    </div>
++  );
++}
+-- 
+2.43.0
+
