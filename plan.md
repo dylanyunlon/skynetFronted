@@ -2251,3 +2251,106 @@ git push origin main
 6. ✅ Git提交 `0943c5f`
 
 > **下一步**: 将EventStreamDisplay集成到主路由，添加eventStream文件的实时加载解析功能
+
+---
+
+## v19: TDD 477 Tests — 10 Code Execution Capability Modules
+
+**完成时间**: 2026-03-24
+**状态**: ✅ 完成
+**Git commit**: `d7e3456`
+
+### TDD 流程执行
+
+| 步骤 | 说明 | 状态 |
+|------|------|------|
+| TDD Step 1 | 编写 214 个测试 (10 modules × ~21 tests avg) | ✅ |
+| TDD Step 2 | 运行测试确认全部失败 (10/10 test files fail — import error) | ✅ |
+| TDD Step 3 | 测试满意 — 继续实现 | ✅ |
+| TDD Step 4 | 实现代码，迭代3次: 205→211→214 pass | ✅ |
+| TDD Step 5 | 回归测试: 477/477 全通过 (263 existing + 214 new) | ✅ |
+| TDD Step 6 | Git 提交 `d7e3456` | ✅ |
+
+### 测试覆盖 (214 tests, 10 modules)
+
+| Module | 文件/功能 | Tests | 状态 |
+|--------|----------|-------|------|
+| M1 | `CodeExecutionEngine` — 语言检测/执行队列/退出码 | 28 | ✅ |
+| M2 | `FileOperationTracker` — 文件CRUD跟踪/冲突检测/树构建 | 19 | ✅ |
+| M3 | `ArtifactRenderer` — artifact类型检测/版本/验证/存储 | 29 | ✅ |
+| M4 | `DomainAllowlistManager` — 域名允许列表/通配符/网络追踪 | 20 | ✅ |
+| M5 | `PackageInstallTracker` — npm/pip/apt/cargo安装解析和统计 | 27 | ✅ |
+| M6 | `SandboxStateManager` — 沙箱生命周期/环境变量/能力/资源 | 19 | ✅ |
+| M7 | `StreamingCodeOutput` — ANSI剥离/输出缓冲/进度检测 | 24 | ✅ |
+| M8 | `ExecutionMetrics` — 计时/成本估算/吞吐量/会话报告 | 18 | ✅ |
+| M9 | `CapabilityToggleManager` — Claude.ai功能开关 (7个内置能力) | 17 | ✅ |
+| M10 | `SessionStateManager` — 完整代理会话状态/快照/导入导出 | 16 | ✅ |
+
+### Claude.ai Code Execution 能力映射
+
+| Claude.ai 能力 | 对应模块 | 说明 |
+|----------------|---------|------|
+| Code execution and file creation | CodeExecutionEngine + FileOperationTracker | 语言检测(10种)、执行队列、FIFO排序、退出码格式化、文件操作跟踪 |
+| Artifacts | ArtifactRenderer | 7种类型(HTML/React/SVG/Mermaid/Markdown/Code/PDF)、版本管理、验证 |
+| AI-powered artifacts | CapabilityToggleManager | 功能开关管理 |
+| Inline visualizations | CapabilityToggleManager | 功能开关管理 |
+| Allow network egress | DomainAllowlistManager | 域名白名单、通配符匹配、请求历史追踪 |
+| Domain allowlist | DomainAllowlistManager | 支持 *.domain.com 通配符 |
+| Package install | PackageInstallTracker | 5种包管理器(npm/pip/apt/cargo/go)自动检测 |
+| Sandbox | SandboxStateManager | 初始化→就绪→执行→终止 生命周期 |
+| Streaming output | StreamingCodeOutput | ANSI色码剥离、进度条检测、输出缓冲 |
+| Session metrics | ExecutionMetrics + SessionStateManager | 成本估算(3种模型定价)、吞吐量、时间线 |
+
+### 新增文件 (10 modules + 10 test files = 20 files, +5056 lines)
+
+| 文件 | 行数 | 说明 |
+|------|------|------|
+| `src/utils/codeExecutionEngine.ts` | 260 | 10种语言检测、执行队列、退出码映射(8种)、复杂度估算 |
+| `src/utils/fileOperationTracker.ts` | 236 | 5种操作类型、冲突检测(3种)、文件树构建、undo |
+| `src/utils/artifactRenderer.ts` | 290 | 7种artifact类型、自动检测、版本管理、渲染配置、验证 |
+| `src/utils/domainAllowlistManager.ts` | 149 | 域名CRUD、通配符匹配、URL解析、请求历史 |
+| `src/utils/packageInstallTracker.ts` | 308 | 5种包管理器解析(npm/pip/apt/cargo/go)、版本提取、统计 |
+| `src/utils/sandboxStateManager.ts` | 182 | 沙箱状态机、环境变量、资源限制、能力管理 |
+| `src/utils/streamingCodeOutput.ts` | 268 | ANSI regex、输出缓冲(partial line)、截断、进度条检测 |
+| `src/utils/executionMetrics.ts` | 225 | 计时器、成本估算(3模型)、吞吐量、formatDuration/formatBytes |
+| `src/utils/capabilityToggleManager.ts` | 200 | 7个内置能力、序列化/反序列化、重置默认 |
+| `src/utils/sessionStateManager.ts` | 238 | 会话阶段(6种)、消息/工具调用追踪、快照、导入导出 |
+| `tests/tdd_v19/*.test.ts` | 10 files, ~2700 lines total | 214 个测试 |
+
+### 构建验证
+
+| 指标 | v18 | v19 | 变化 |
+|------|-----|-----|------|
+| Tests | 263 | 477 | +214 |
+| Test files | 3 | 13 | +10 |
+| JS bundle | 574KB | 581KB | +7KB |
+| CSS bundle | 86KB | 87KB | +1KB |
+| TS errors | 0 | 0 | — |
+| src/ modules | ~25 utils | 35 utils | +10 |
+
+### 部署命令
+
+```bash
+cd /root/dylan/skynetCheapBuy/skynetFronted
+git pull origin main
+
+# 安装依赖 (无新增npm依赖)
+npm install
+
+# 运行全部测试
+npm test
+# Expected: 477/477 passed
+
+# 构建
+npm run build
+
+# 提交 (已在本地提交 d7e3456, 需要 push)
+git push origin main
+```
+
+### 下一步
+
+1. **将新模块集成到 AgenticChat.tsx** — 使用 `CapabilityToggleManager` 控制 UI 功能面板
+2. **创建 CodeExecutionPanel 组件** — 使用 `CodeExecutionEngine` + `StreamingCodeOutput` + `SandboxStateManager` 实现 Claude Code Web 风格的代码执行可视化
+3. **创建 ArtifactPanel 组件** — 使用 `ArtifactRenderer` 实现 inline artifact 预览
+4. **创建 SettingsPanel 组件** — 使用 `CapabilityToggleManager` 实现 Claude.ai 风格的功能开关面板
