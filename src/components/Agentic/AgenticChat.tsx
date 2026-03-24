@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAgenticLoop } from '@/hooks/useAgenticLoop';
 import { AgenticBlock, TOOL_DISPLAY, DetailItem, ToolResultMeta, TodoItem, TodoStatus } from '@/types/agentic';
+import { COMMAND_REGISTRY, getCommandDisplay, formatCommandSignature } from '@/types/commandRegistry';
 import { DiffViewer } from './DiffViewer';
 
 // ============================================================
@@ -44,9 +45,15 @@ const BulletIndicator: React.FC<{ color?: string; pulse?: boolean }> = ({
 );
 
 // ============================================================
-// Claude Code 风格工具名称映射
+// Claude Code 风格工具名称映射 — delegates to commandRegistry
 // ============================================================
-const CLAUDE_TOOL_NAMES: Record<string, string> = {
+const getClaudeName = (tool: string): string => {
+  const info = COMMAND_REGISTRY[tool];
+  return info?.claudeName || CLAUDE_TOOL_NAMES_LEGACY[tool] || tool;
+};
+
+// Legacy fallback (kept for backwards compat with v13 blocks)
+const CLAUDE_TOOL_NAMES_LEGACY: Record<string, string> = {
   bash: 'Bash',
   read_file: 'Read',
   batch_read: 'Read',
@@ -214,7 +221,7 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   const meta = block.toolResultMeta;
 
   const buildClaudeCallSignature = (): { name: string; argText: string; suffix: string } => {
-    const ccName = CLAUDE_TOOL_NAMES[tool] || tool;
+    const ccName = getClaudeName(tool);
 
     if (tool === 'bash' || tool === 'run_script') {
       const cmd = block.toolArgs?.command || block.toolArgs?.script || '';
@@ -457,7 +464,7 @@ const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
         <div className="mt-1 ml-6 space-y-0.5 border-l border-gray-700/40 pl-3">
           {items.map((item, i) => (
             <div key={i} className="flex items-center gap-2 text-xs text-gray-500">
-              <span className="text-gray-600">{CLAUDE_TOOL_NAMES[item.tool] || item.tool}</span>
+              <span className="text-gray-600">{getClaudeName(item.tool)}</span>
               <span className="text-gray-400 truncate">{item.title}</span>
             </div>
           ))}

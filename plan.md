@@ -2193,3 +2193,61 @@ git push origin main
 ---
 
 > **下一步**: 将 CommandDisplayRegistry 集成到 AgenticChat.tsx 的 ToolBlock 渲染中，替换硬编码的 TOOL_DISPLAY 映射
+
+---
+
+## v18: CommandRegistry 55 Tool Types + EventStreamParser + EventStreamDisplay
+
+**完成时间**: 2026-03-24
+**状态**: ✅ 完成
+
+### 新增文件
+
+| 文件 | 功能 | 行数 |
+|------|------|------|
+| `src/types/commandRegistry.ts` | 55种工具类型注册表，7大分类，display/format/parse函数 | 365行 |
+| `src/core/eventStreamParser.ts` | SSE协议解析器：行解析、块解析、聚合、时间线 | 257行 |
+| `src/components/Agentic/EventStreamDisplay.tsx` | 三视图组件(Timeline/Registry/Stats)展示eventStream1-4数据 | 436行 |
+| `tests/tdd_v18/test_command_registry.test.ts` | CommandRegistry 93个测试 | 683行 |
+| `tests/tdd_v18/test_event_stream_parser.test.ts` | EventStreamParser 60个测试 | 504行 |
+
+### 修改文件
+
+| 文件 | 改动 |
+|------|------|
+| `src/components/Agentic/AgenticChat.tsx` | +11 -4: 导入commandRegistry，替换CLAUDE_TOOL_NAMES为getClaudeName() |
+
+### 55种工具类型分类
+
+| 分类 | 数量 | 工具 |
+|------|------|------|
+| filesystem | 12 | read_file, write_file, edit_file, create_file, view, batch_read, view_truncated, multi_edit, list_dir, glob, file_search, str_replace |
+| execution | 8 | bash, bash_tool, run_script, batch_commands, execute_code, install_package, shell_exec, docker_run |
+| web | 7 | web_search, web_fetch, image_search, web_crawl, api_request, scrape_page, dns_lookup |
+| git | 13 | git_clone, git_commit, git_push, git_pull, git_diff, git_log, git_branch, git_checkout, git_merge, git_stash, git_status, git_add, git_reset |
+| agent | 9 | task, todo_write, todo_read, task_complete, memory_read, memory_write, subagent_spawn, context_compact, approval_request |
+| debug | 6 | debug_test, revert_edit, revert_to_checkpoint, test_run, lint_check, type_check |
+| output | 5 | present_files, create_artifact, render_markdown, generate_image, create_chart |
+
+### EventStream数据统计 (eventStream1-4.txt)
+
+| 指标 | 值 |
+|------|-----|
+| 总tool calls | 54 |
+| bash_tool调用 | 36 (67%) |
+| str_replace调用 | 15 (28%) |
+| view调用 | 1 |
+| create_file调用 | 1 |
+| present_files调用 | 1 |
+| 总持续时间 | ~226秒 |
+
+### TDD流程
+
+1. ✅ 编写153个测试 (93 commandRegistry + 60 eventStreamParser)
+2. ✅ 确认全部失败（模块不存在）
+3. ✅ 实现代码通过全部153个测试
+4. ✅ 回归测试：263个总测试全部通过（含v17的110个）
+5. ✅ TypeScript编译零错误
+6. ✅ Git提交 `0943c5f`
+
+> **下一步**: 将EventStreamDisplay集成到主路由，添加eventStream文件的实时加载解析功能
