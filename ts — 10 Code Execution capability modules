@@ -1,0 +1,24 @@
+ plan.md                                              |  103 [32m++[m
+ src/utils/artifactRenderer.ts                        |  290 [32m+++++[m
+ src/utils/capabilityToggleManager.ts                 |  200 [32m+++[m
+ src/utils/codeExecutionEngine.ts                     |  260 [32m++++[m
+ src/utils/domainAllowlistManager.ts                  |  149 [32m+++[m
+ src/utils/executionMetrics.ts                        |  225 [32m++++[m
+ src/utils/fileOperationTracker.ts                    |  236 [32m++++[m
+ src/utils/packageInstallTracker.ts                   |  308 [32m+++++[m
+ src/utils/sandboxStateManager.ts                     |  182 [32m+++[m
+ src/utils/sessionStateManager.ts                     |  238 [32m++++[m
+ src/utils/streamingCodeOutput.ts                     |  268 [32m++++[m
+ tests/tdd_v19/test_artifact_renderer.test.ts         |  320 [32m+++++[m
+ tests/tdd_v19/test_capability_toggle_manager.test.ts |  230 [32m++++[m
+ tests/tdd_v19/test_code_execution_engine.test.ts     |  322 [32m+++++[m
+ tests/tdd_v19/test_domain_allowlist_manager.test.ts  |  242 [32m++++[m
+ tests/tdd_v19/test_execution_metrics.test.ts         |  252 [32m++++[m
+ tests/tdd_v19/test_file_operation_tracker.test.ts    |  282 [32m+++++[m
+ tests/tdd_v19/test_package_install_tracker.test.ts   |  256 [32m++++[m
+ tests/tdd_v19/test_sandbox_state_manager.test.ts     |  258 [32m++++[m
+ tests/tdd_v19/test_session_state_manager.test.ts     |  271 [32m++++[m
+ tests/tdd_v19/test_streaming_code_output.test.ts     |  267 [32m++++[m
+ v18_command_registry.patch                           | 2419 [32m++++++++++++++++++++++++++++++++++++[m
+ v19.patch                                            | 5374 [32m+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++[m
+ 23 files changed, 12952 insertions(+)

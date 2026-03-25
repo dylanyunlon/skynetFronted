@@ -2524,3 +2524,64 @@ git push origin main
 2. **创建 ArtifactPanel React 组件** (`src/components/Agentic/ArtifactPanel.tsx`) — 使用 `artifactPanelLogic` 渲染 artifact 预览/版本切换/标签页
 3. **创建 SettingsPanel React 组件** (`src/components/Agentic/SettingsPanel.tsx`) — 使用 `settingsPanelLogic` 渲染功能开关面板
 4. **AgenticChat.tsx 集成** — 使用 `agenticChatIntegration` 替换硬编码的 TOOL_DISPLAY 映射, 接入面板路由和能力过滤
+
+---
+
+## v21: npm Module Install + TDD 860/860 — 10 Utility Modules + 29 New npm Packages
+
+**完成时间**: 2026-03-25
+**状态**: ✅ 完成
+**Git commit**: `5f859da`
+**Patch**: `v21_npm_modules.patch`
+
+### 新增 npm 依赖 (29个)
+
+| 分类 | 包名 | 用途 |
+|------|------|------|
+| CodeMirror (9) | @codemirror/{state,view,lang-javascript,lang-python,lang-html,lang-css,lang-json,theme-one-dark,language} | 代码编辑器 |
+| Terminal (3) | @xterm/{xterm,addon-fit,addon-web-links} | 终端模拟 |
+| Radix UI (5) | @radix-ui/react-{separator,collapsible,aspect-ratio,hover-card,toggle-group} | UI组件原语 |
+| Data (3) | @tanstack/{react-virtual,react-query}, immer | 虚拟滚动/数据获取/不可变状态 |
+| Diff/Markdown (3) | diff, rehype-highlight, rehype-raw | Diff计算/代码高亮/HTML渲染 |
+| Monaco (2) | monaco-editor, @monaco-editor/react | 高级代码编辑器 |
+| Other (4) | tailwindcss-animate, sonner, eventsource-parser, @codemirror/lint | 动画/通知/SSE解析/代码检查 |
+
+### 新增实现模块 (5 files, ~700 lines)
+
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `src/utils/themeSystem.ts` | 145 | Claude design tokens, CSS变量, 主题切换, 对比度工具 |
+| `src/utils/sseEventParser.ts` | 160 | Claude API SSE协议解析, EventStreamBuilder, token聚合 |
+| `src/utils/markdownEngine.ts` | 155 | 代码块提取, thinking块处理, section分割, XSS消毒 |
+| `src/utils/virtualScrollManager.ts` | 130 | 视口计算, overscan, 消息/日志预设配置 |
+| `src/utils/keyboardShortcutManager.ts` | 170 | 快捷键注册表, combo解析, 冲突检测, Claude默认快捷键 |
+
+### TDD 测试统计
+
+| 版本 | 测试数 | 状态 |
+|------|--------|------|
+| v17 | 110 | ✅ |
+| v18 | 153 | ✅ |
+| v19 | 214 | ✅ |
+| v20 | 103 | ✅ |
+| v21 | 280 | ✅ |
+| **总计** | **860** | **✅ 全部通过** |
+
+### 构建验证
+
+| 指标 | v20 | v21 | 变化 |
+|------|-----|-----|------|
+| Tests | 580 | 860 | +280 |
+| Test files | 17 | 27 | +10 |
+| JS bundle | 581KB | 581KB | +0KB (tree-shaken) |
+| CSS bundle | 87KB | 87KB | — |
+| TS errors | 0 | 0 | — |
+| npm deps | ~50 | ~79 | +29 |
+
+### 下一步
+
+1. 将新模块集成到 React 组件中 (CodeEditor用CodeMirror/Monaco, Terminal用xterm, etc.)
+2. 创建 ThemeProvider 组件接入 themeSystem
+3. 创建 SSEStreamProvider 接入 sseEventParser
+4. 用 @tanstack/react-virtual 替换现有长列表
+5. 用 sonner 替换自定义 Toast
