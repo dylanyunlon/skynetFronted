@@ -96,32 +96,32 @@ const TodoListDisplay: React.FC<{ todoStatus: TodoStatus }> = ({ todoStatus }) =
     switch (item.status) {
       case 'completed': return <CheckSquare className="w-3.5 h-3.5 text-green-400 shrink-0" />;
       case 'in_progress': return <CircleDot className="w-3.5 h-3.5 text-blue-400 shrink-0 animate-pulse" />;
-      default: return <Circle className="w-3.5 h-3.5 text-gray-500 shrink-0" />;
+      default: return <Circle className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />;
     }
   };
 
   const priorityBadge = (p?: string) => {
     if (!p || p === 'medium') return null;
     if (p === 'high') return <span className="text-[9px] bg-red-900/30 text-red-400 px-1 rounded">HIGH</span>;
-    return <span className="text-[9px] bg-gray-700 text-gray-400 px-1 rounded">LOW</span>;
+    return <span className="text-[9px] bg-accent text-muted-foreground px-1 rounded">LOW</span>;
   };
 
   return (
     <div className="my-2 ml-4">
       <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setExpanded(!expanded)}>
         <BulletIndicator color="text-indigo-400" />
-        <span className="text-sm text-gray-300">TodoWrite — {todoStatus.completed}/{todoStatus.total} tasks complete</span>
-        <div className="flex-1 mx-2 h-1 bg-gray-700 rounded-full overflow-hidden max-w-[120px]">
+        <span className="text-sm text-foreground/80">TodoWrite — {todoStatus.completed}/{todoStatus.total} tasks complete</span>
+        <div className="flex-1 mx-2 h-1 bg-accent rounded-full overflow-hidden max-w-[120px]">
           <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
         </div>
-        <span className="text-[10px] text-gray-500">{progressPct}%</span>
+        <span className="text-[10px] text-muted-foreground/70">{progressPct}%</span>
       </div>
       {expanded && todos.length > 0 && (
-        <div className="ml-6 mt-1.5 space-y-1 border-l border-gray-700/50 pl-3">
+        <div className="ml-6 mt-1.5 space-y-1 border-l border-border/50 pl-3">
           {todos.map((t) => (
             <div key={t.id} className="flex items-start gap-2 text-xs">
               {statusIcon(t)}
-              <span className={t.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-300'}>{t.content}</span>
+              <span className={t.status === 'completed' ? 'text-muted-foreground/70 line-through' : 'text-foreground/80'}>{t.content}</span>
               {priorityBadge(t.priority)}
             </div>
           ))}
@@ -152,7 +152,7 @@ const ApprovalBlock: React.FC<{
         <AlertTriangle className="w-4 h-4 shrink-0" />
         <span className="font-medium">Permission required — {risk} risk</span>
       </div>
-      <div className="font-mono text-[11px] bg-black/20 px-2 py-1.5 rounded mb-2 text-gray-300 break-all">{cmd}</div>
+      <div className="font-mono text-[11px] bg-foreground/5 px-2 py-1.5 rounded mb-2 text-foreground/80 break-all">{cmd}</div>
       {decided ? (
         <span className={decided === 'approved' ? 'text-green-400' : 'text-red-400'}>
           {decided === 'approved' ? '✓ Approved' : '✗ Denied'}
@@ -179,14 +179,14 @@ const WebSearchResults: React.FC<{ meta: ToolResultMeta }> = ({ meta }) => {
     <div className="space-y-1.5 mt-1">
       {results.map((r, i) => (
         <div key={i} className="flex items-start gap-2 py-0.5 group">
-          <div className="w-4 h-4 rounded bg-gray-700 flex items-center justify-center text-[8px] text-gray-400 shrink-0 mt-0.5">
+          <div className="w-4 h-4 rounded bg-accent flex items-center justify-center text-[8px] text-muted-foreground shrink-0 mt-0.5">
             {r.domain?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[11px] text-blue-400 truncate group-hover:underline cursor-pointer">{r.title}</div>
-            <div className="text-[10px] text-gray-500 truncate">{r.domain || r.url}</div>
+            <div className="text-[10px] text-muted-foreground/70 truncate">{r.domain || r.url}</div>
           </div>
-          <ExternalLink className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-100 shrink-0 mt-0.5" />
+          <ExternalLink className="w-3 h-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 shrink-0 mt-0.5" />
         </div>
       ))}
     </div>
@@ -204,7 +204,7 @@ const BatchCommandsResults: React.FC<{ meta: ToolResultMeta }> = ({ meta }) => {
       {results.map((r, i) => (
         <div key={i} className="flex items-center gap-2 text-[11px]">
           {r.success ? <CheckCircle className="w-3 h-3 text-green-400 shrink-0" /> : <XCircle className="w-3 h-3 text-red-400 shrink-0" />}
-          <span className="text-gray-300 truncate">{r.description || `Command ${i + 1}`}</span>
+          <span className="text-foreground/80 truncate">{r.description || `Command ${i + 1}`}</span>
         </div>
       ))}
     </div>
@@ -328,13 +328,13 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 
   return (
     <div className="my-0.5 ml-4">
-      <div className="flex items-start gap-2 cursor-pointer group hover:bg-white/[0.02] rounded px-1 -mx-1 py-0.5 transition-colors"
+      <div className="flex items-start gap-2 cursor-pointer group hover:bg-accent/30 rounded px-1 -mx-1 py-0.5 transition-colors"
         onClick={() => setExpanded(!expanded)}>
         <BulletIndicator color={bulletColor} pulse={isLoading} />
         <div className="flex-1 min-w-0 text-sm">
-          <span className="text-gray-200 font-medium">{ccName}</span>
-          {displayArg && <span className={`text-gray-400 ${streamingArg ? 'animate-pulse' : ''}`}>({displayArg.length > 100 ? displayArg.substring(0, 97) + '...' : displayArg})</span>}
-          {isLoading && !streamingArg && <span className="text-gray-500">…</span>}
+          <span className="text-foreground font-medium">{ccName}</span>
+          {displayArg && <span className={`text-muted-foreground ${streamingArg ? 'animate-pulse' : ''}`}>({displayArg.length > 100 ? displayArg.substring(0, 97) + '...' : displayArg})</span>}
+          {isLoading && !streamingArg && <span className="text-muted-foreground/70">…</span>}
           {statsSuffix && (
             <span className="ml-2 text-xs">
               {statsSuffix.includes('+') && <span className="text-green-400">{statsSuffix.split(' ')[0]} </span>}
@@ -342,49 +342,49 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
             </span>
           )}
           {tool === 'web_search' && !isLoading && (meta?.results_count ?? meta?.result_titles?.length ?? 0) > 0 && !statsSuffix && (
-            <span className="ml-2 text-[10px] text-gray-500">{meta?.results_count ?? meta?.result_titles?.length} results</span>
+            <span className="ml-2 text-[10px] text-muted-foreground/70">{meta?.results_count ?? meta?.result_titles?.length} results</span>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {isLoading && <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />}
           {!isLoading && block.toolSuccess === false && <XCircle className="w-3.5 h-3.5 text-red-400" />}
-          {block.toolDurationMs != null && <span className="text-[10px] text-gray-600">{(block.toolDurationMs / 1000).toFixed(1)}s</span>}
-          {expanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-100" />}
+          {block.toolDurationMs != null && <span className="text-[10px] text-muted-foreground/50">{(block.toolDurationMs / 1000).toFixed(1)}s</span>}
+          {expanded ? <ChevronDown className="w-3 h-3 text-muted-foreground/50" /> : <ChevronRight className="w-3 h-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100" />}
         </div>
       </div>
 
       {expanded && (
-        <div className="ml-4 mt-1 border-l border-gray-700/40 pl-3 text-xs font-mono max-h-80 overflow-y-auto">
+        <div className="ml-4 mt-1 border-l border-border/40 pl-3 text-xs font-mono max-h-80 overflow-y-auto">
           {block.toolDescription && block.toolDescription !== ccName && (
-            <div className="text-gray-500 mb-1.5 font-sans text-[11px] italic">{block.toolDescription}</div>
+            <div className="text-muted-foreground/70 mb-1.5 font-sans text-[11px] italic">{block.toolDescription}</div>
           )}
           {(tool === 'bash' || tool === 'run_script') && (block.toolArgs?.command || block.toolArgs?.script) && (
-            <div className="bg-black/20 rounded px-2 py-1.5 mb-1.5">
+            <div className="bg-foreground/5 rounded px-2 py-1.5 mb-1.5">
               <pre className="text-yellow-300/80 whitespace-pre-wrap text-[11px]">$ {(block.toolArgs.command || block.toolArgs.script || '').substring(0, 1000)}</pre>
             </div>
           )}
           {block.toolDiff && <DiffViewer diff={block.toolDiff} filename={meta?.filename} addedLines={meta?.added_lines} removedLines={meta?.removed_lines} />}
           {tool === 'web_search' && meta && <WebSearchResults meta={meta} />}
           {tool === 'web_fetch' && (block.toolArgs?.url || meta?.url) && (
-            <div className="text-cyan-400/70 text-[11px] truncate mb-1.5">{block.toolArgs?.url || meta?.url}</div>
+            <div className="text-primary/70 text-[11px] truncate mb-1.5">{block.toolArgs?.url || meta?.url}</div>
           )}
           {tool === 'batch_commands' && meta && <BatchCommandsResults meta={meta} />}
           {tool === 'view_truncated' && (meta?.truncated_range || meta?.total_lines) && (
-            <div className="text-gray-500 text-[11px] mb-1.5">
+            <div className="text-muted-foreground/70 text-[11px] mb-1.5">
               {meta?.truncated_range && <span>Lines {meta.truncated_range}</span>}
               {meta?.total_lines && <span> of {meta.total_lines} total</span>}
             </div>
           )}
           {/* Phase 7: execute_code — show code + output */}
           {tool === 'execute_code' && block.toolArgs?.code && (
-            <div className="bg-black/20 rounded px-2 py-1.5 mb-1.5">
-              <div className="text-[10px] text-gray-500 mb-1">{meta?.language || block.toolArgs?.language || 'python'}</div>
+            <div className="bg-foreground/5 rounded px-2 py-1.5 mb-1.5">
+              <div className="text-[10px] text-muted-foreground/70 mb-1">{meta?.language || block.toolArgs?.language || 'python'}</div>
               <pre className="text-green-300/80 whitespace-pre-wrap text-[11px]">{(block.toolArgs.code || '').substring(0, 2000)}</pre>
             </div>
           )}
           {/* Phase 7: install_package — show command + result */}
           {tool === 'install_package' && (
-            <div className="bg-black/20 rounded px-2 py-1.5 mb-1.5">
+            <div className="bg-foreground/5 rounded px-2 py-1.5 mb-1.5">
               <pre className="text-yellow-300/80 text-[11px]">$ {meta?.manager || 'pip'} install {meta?.package || block.toolArgs?.package}</pre>
             </div>
           )}
@@ -398,7 +398,7 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
                   ) : (
                     <>
                       <span className="text-emerald-400">📎 {f.filename}</span>
-                      <span className="text-gray-600">{f.size ? `(${(f.size / 1024).toFixed(1)}KB)` : ''}</span>
+                      <span className="text-muted-foreground/50">{f.size ? `(${(f.size / 1024).toFixed(1)}KB)` : ''}</span>
                       {f.download_path && (
                         <a href={f.download_path} className="text-blue-400 hover:underline" download>Download</a>
                       )}
@@ -409,7 +409,7 @@ const ToolBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
             </div>
           )}
           {block.toolResult && !block.toolDiff && tool !== 'web_search' && tool !== 'batch_commands' && (
-            <pre className="text-gray-400/80 whitespace-pre-wrap break-words text-[11px] max-h-40 overflow-y-auto">
+            <pre className="text-muted-foreground/80 whitespace-pre-wrap break-words text-[11px] max-h-40 overflow-y-auto">
               {block.toolResult.substring(0, 3000)}
               {block.toolResult.length > 3000 && '\n…[truncated]'}
             </pre>
@@ -451,21 +451,21 @@ const TurnSummaryBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 
   return (
     <div className="my-2 ml-4">
-      <div className="flex items-start gap-2 cursor-pointer group hover:bg-white/[0.02] rounded px-1 -mx-1 py-0.5"
+      <div className="flex items-start gap-2 cursor-pointer group hover:bg-accent/30 rounded px-1 -mx-1 py-0.5"
         onClick={() => setExpanded(!expanded)}>
         <BulletIndicator color="text-green-400" />
-        <span className="text-sm text-gray-300">{buildClaudeStyleTitle()}</span>
+        <span className="text-sm text-foreground/80">{buildClaudeStyleTitle()}</span>
         {summary?.task_completed && <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />}
         {items.length > 0 && (expanded
-          ? <ChevronDown className="w-3 h-3 text-gray-600 shrink-0" />
-          : <ChevronRight className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-100 shrink-0" />)}
+          ? <ChevronDown className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+          : <ChevronRight className="w-3 h-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 shrink-0" />)}
       </div>
       {expanded && items.length > 0 && (
-        <div className="mt-1 ml-6 space-y-0.5 border-l border-gray-700/40 pl-3">
+        <div className="mt-1 ml-6 space-y-0.5 border-l border-border/40 pl-3">
           {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs text-gray-500">
-              <span className="text-gray-600">{getClaudeName(item.tool)}</span>
-              <span className="text-gray-400 truncate">{item.title}</span>
+            <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
+              <span className="text-muted-foreground/50">{getClaudeName(item.tool)}</span>
+              <span className="text-muted-foreground truncate">{item.title}</span>
             </div>
           ))}
         </div>
@@ -485,7 +485,7 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
       <div className="my-1 ml-4 flex items-start gap-2">
         <BulletIndicator color="text-yellow-400" pulse />
         <span className="text-sm text-yellow-300">Debug cycle {block.debugAttempt}/{block.debugMaxRetries}</span>
-        <span className="text-xs text-gray-500 font-mono truncate">{block.debugCommand}</span>
+        <span className="text-xs text-muted-foreground/70 font-mono truncate">{block.debugCommand}</span>
       </div>
     );
   }
@@ -497,15 +497,15 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
           <span className={`text-sm ${block.debugPassed ? 'text-green-300' : 'text-red-300'}`}>
             {block.debugPassed ? 'Tests passed' : 'Tests failed'}
           </span>
-          {block.debugDiagnosis && <span className="text-xs text-gray-500 truncate">{block.debugDiagnosis.error_summary}</span>}
+          {block.debugDiagnosis && <span className="text-xs text-muted-foreground/70 truncate">{block.debugDiagnosis.error_summary}</span>}
           {block.content && (
-            <button onClick={() => setShowLog(!showLog)} className="ml-auto text-gray-500 hover:text-gray-300 text-[10px] underline">
+            <button onClick={() => setShowLog(!showLog)} className="ml-auto text-muted-foreground/70 hover:text-foreground/80 text-[10px] underline">
               {showLog ? 'hide' : 'log'}
             </button>
           )}
         </div>
         {showLog && block.content && (
-          <pre className="mt-1 ml-6 text-[10px] text-gray-500 bg-black/20 rounded px-2 py-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap">{block.content}</pre>
+          <pre className="mt-1 ml-6 text-[10px] text-muted-foreground/70 bg-foreground/5 rounded px-2 py-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap">{block.content}</pre>
         )}
       </div>
     );
@@ -519,15 +519,15 @@ const DebugBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
           <span className={`text-sm ${pass ? 'text-green-300' : 'text-red-300'}`}>
             Ran {block.testTotal} tests. {block.testPassedCount} passed.
           </span>
-          {block.testDurationS != null && <span className="text-[10px] text-gray-500">[{block.testDurationS.toFixed(2)}s]</span>}
+          {block.testDurationS != null && <span className="text-[10px] text-muted-foreground/70">[{block.testDurationS.toFixed(2)}s]</span>}
           {block.content && (
-            <button onClick={() => setShowLog(!showLog)} className="ml-auto text-gray-500 hover:text-gray-300 text-[10px] underline">
+            <button onClick={() => setShowLog(!showLog)} className="ml-auto text-muted-foreground/70 hover:text-foreground/80 text-[10px] underline">
               {showLog ? 'hide' : 'output'}
             </button>
           )}
         </div>
         {showLog && block.content && (
-          <pre className="mt-1 ml-6 text-[10px] text-gray-500 bg-black/20 rounded px-2 py-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap">{block.content}</pre>
+          <pre className="mt-1 ml-6 text-[10px] text-muted-foreground/70 bg-foreground/5 rounded px-2 py-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap">{block.content}</pre>
         )}
       </div>
     );
@@ -545,8 +545,8 @@ const InfoBlock: React.FC<{
 }> = ({ block, onApprove, onDeny }) => {
   if (block.type === 'diff_summary' && (block.diffFilesChanged ?? 0) > 0) {
     return (
-      <div className="my-1 ml-4 flex items-start gap-2 text-xs text-gray-500">
-        <BulletIndicator color="text-gray-500" />
+      <div className="my-1 ml-4 flex items-start gap-2 text-xs text-muted-foreground/70">
+        <BulletIndicator color="text-muted-foreground/70" />
         <span>{block.diffFilesChanged} file{block.diffFilesChanged! > 1 ? 's' : ''} changed</span>
         {block.diffTotalAdded! > 0 && <span className="text-green-400">+{block.diffTotalAdded}</span>}
         {block.diffTotalRemoved! > 0 && <span className="text-red-400">-{block.diffTotalRemoved}</span>}
@@ -564,15 +564,15 @@ const InfoBlock: React.FC<{
   if (block.type === 'approval_wait') return <ApprovalBlock block={block} onApprove={onApprove} onDeny={onDeny} />;
   if (block.type === 'chunk_schedule') {
     return (
-      <div className="my-1 ml-4 flex items-start gap-2 text-[11px] text-gray-600">
-        <BulletIndicator color="text-gray-600" />
+      <div className="my-1 ml-4 flex items-start gap-2 text-[11px] text-muted-foreground/50">
+        <BulletIndicator color="text-muted-foreground/50" />
         <span>Scheduling {block.chunkTotalCalls} calls in {block.chunkCount} chunks ({block.chunkParallelCalls} parallel)</span>
       </div>
     );
   }
   if (block.type === 'context_compact') {
     return (
-      <div className="my-1 ml-4 flex items-start gap-2 text-[11px] text-gray-600">
+      <div className="my-1 ml-4 flex items-start gap-2 text-[11px] text-muted-foreground/50">
         <BulletIndicator color="text-purple-400" />
         <span>Context compacted: {block.compactBeforeTokens?.toLocaleString()} → {block.compactAfterTokens?.toLocaleString()} tokens</span>
       </div>
@@ -594,27 +594,27 @@ const ThinkingBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
   return (
     <div className="my-1 ml-4">
       <div className="flex items-start gap-2 cursor-pointer group" onClick={() => setExpanded(!expanded)}>
-        <BulletIndicator color="text-gray-600" pulse={isActive} />
+        <BulletIndicator color="text-muted-foreground/50" pulse={isActive} />
         <div className="flex-1 min-w-0 text-xs">
           {isActive && !summary && (
-            <span className="text-gray-500 italic">Thinking…</span>
+            <span className="text-muted-foreground/70 italic">Thinking…</span>
           )}
           {summary && !expanded && (
-            <span className="text-gray-500 italic">{summary}</span>
+            <span className="text-muted-foreground/70 italic">{summary}</span>
           )}
           {!isActive && !summary && !expanded && (
-            <span className="text-gray-500 italic">Thought for a moment</span>
+            <span className="text-muted-foreground/70 italic">Thought for a moment</span>
           )}
           {expanded && (
-            <div className="text-gray-500 italic leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+            <div className="text-muted-foreground/70 italic leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
               {content}
             </div>
           )}
         </div>
         {content.length > 0 && (
           expanded
-            ? <ChevronDown className="w-3 h-3 text-gray-600 shrink-0" />
-            : <ChevronRight className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-100 shrink-0" />
+            ? <ChevronDown className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+            : <ChevronRight className="w-3 h-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 shrink-0" />
         )}
       </div>
     </div>
@@ -627,12 +627,12 @@ const ThinkingBlock: React.FC<{ block: AgenticBlock }> = ({ block }) => {
 const EmptyState: React.FC = () => (
   <div className="flex flex-col items-center justify-center h-full text-center px-6">
     <div className="mb-6">
-      <div className="text-2xl font-light text-gray-200 mb-1">What can I help you with?</div>
-      <div className="text-sm text-gray-500">AI 自主编程 — 文件操作 · 命令执行 · Web 搜索 · 调试回滚</div>
+      <div className="text-2xl font-light text-foreground mb-1">What can I help you with?</div>
+      <div className="text-sm text-muted-foreground/70">AI 自主编程 — 文件操作 · 命令执行 · Web 搜索 · 调试回滚</div>
     </div>
     <div className="flex flex-wrap justify-center gap-2 max-w-md">
       {['Fix the failing tests', 'Refactor this module', 'Explain this codebase', 'Create a REST API', 'Debug the build error', 'Search for best practices'].map((hint) => (
-        <div key={hint} className="px-3 py-1.5 text-xs text-gray-400 bg-gray-800/50 border border-gray-700/30 rounded-full hover:bg-gray-700/50 hover:text-gray-300 cursor-pointer transition-colors">
+        <div key={hint} className="px-3 py-1.5 text-xs text-muted-foreground bg-muted/50 border border-border/30 rounded-full hover:bg-accent/50 hover:text-foreground/80 cursor-pointer transition-colors">
           {hint}
         </div>
       ))}
@@ -676,27 +676,27 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
   const isIdle = status === 'idle' && blocks.length === 0;
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1a2e] text-gray-100" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div className="flex flex-col h-full bg-background text-foreground">
       {/* 状态栏 */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-b border-gray-800 bg-[#16162a] text-xs">
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-border bg-muted text-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${
               status === 'running' ? 'bg-green-400 animate-pulse' :
               status === 'done' ? 'bg-blue-400' :
-              status === 'error' ? 'bg-red-400' : 'bg-gray-600'
+              status === 'error' ? 'bg-red-400' : 'bg-accent'
             }`} />
-            <span className="text-gray-400 font-medium">{model || defaultModel}</span>
+            <span className="text-muted-foreground font-medium">{model || defaultModel}</span>
           </div>
-          {workDir && <span className="text-gray-600 font-mono text-[10px] truncate max-w-[200px]">{workDir}</span>}
+          {workDir && <span className="text-muted-foreground/50 font-mono text-[10px] truncate max-w-[200px]">{workDir}</span>}
         </div>
-        <div className="flex items-center gap-3 text-gray-500">
-          {status === 'running' && elapsed > 0 && <span className="text-gray-400">{elapsed.toFixed(0)}s</span>}
+        <div className="flex items-center gap-3 text-muted-foreground/70">
+          {status === 'running' && elapsed > 0 && <span className="text-muted-foreground">{elapsed.toFixed(0)}s</span>}
           {totalToolCalls > 0 && <span>{totalToolCalls} tool calls</span>}
           {totalCost > 0 && <span>${totalCost.toFixed(4)}</span>}
           {contextTokensEst > 0 && <span>{(contextTokensEst / 1000).toFixed(0)}K ctx</span>}
           {(status === 'done' || status === 'error') && blocks.length > 0 && (
-            <button onClick={handleNewTask} className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1">
+            <button onClick={handleNewTask} className="text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
               <Sparkles className="w-3 h-3" /><span>New</span>
             </button>
           )}
@@ -715,7 +715,7 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
                       <div key={block.id} className="my-2 ml-4">
                         <div className="flex items-start gap-2">
                           <BulletIndicator color="text-blue-400" />
-                          <div className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed flex-1">{block.content}</div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed flex-1">{block.content}</div>
                         </div>
                       </div>
                     );
@@ -734,7 +734,7 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
                         <span className={block.fileAction === 'created' ? 'text-green-400' : 'text-orange-400'}>
                           {block.fileAction === 'created' ? 'Create' : 'Update'}
                         </span>
-                        <span className="text-gray-300 font-mono">{block.fileName}</span>
+                        <span className="text-foreground/80 font-mono">{block.fileName}</span>
                         {(block.linesAdded ?? 0) > 0 && <span className="text-green-400">+{block.linesAdded}</span>}
                         {(block.linesRemoved ?? 0) > 0 && <span className="text-red-400">-{block.linesRemoved}</span>}
                       </div>
@@ -760,7 +760,7 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
                           {block.toolSuccess === true && <CheckCircle className="w-3.5 h-3.5 text-green-400" />}
                           {block.toolSuccess === false && <XCircle className="w-3.5 h-3.5 text-red-400" />}
                         </div>
-                        {block.content && <div className="text-xs text-gray-500 ml-6 mt-0.5 truncate">{block.content}</div>}
+                        {block.content && <div className="text-xs text-muted-foreground/70 ml-6 mt-0.5 truncate">{block.content}</div>}
                       </div>
                     );
                   default:
@@ -771,12 +771,12 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
               {status === 'running' && (
                 <div className="my-2 ml-4 flex items-start gap-2">
                   <BulletIndicator color="text-blue-400" pulse />
-                  <span className="text-sm text-gray-400">Thinking…</span>
+                  <span className="text-sm text-muted-foreground">Thinking…</span>
                 </div>
               )}
 
               {status === 'done' && blocks.length > 0 && (
-                <div className="mt-4 ml-4 pt-3 border-t border-gray-800/50 text-xs text-gray-600 flex items-center gap-3">
+                <div className="mt-4 ml-4 pt-3 border-t border-border/50 text-xs text-muted-foreground/50 flex items-center gap-3">
                   <span className="text-green-400/70">✓ Done</span>
                   <span>{turns} turn{turns !== 1 ? 's' : ''}</span>
                   <span>{totalToolCalls} tool call{totalToolCalls !== 1 ? 's' : ''}</span>
@@ -790,7 +790,7 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
       </div>
 
       {/* 输入区 */}
-      <div className="border-t border-gray-800 bg-[#16162a] px-4 py-3">
+      <div className="border-t border-border bg-muted px-4 py-3">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-end gap-2">
             <textarea
@@ -799,8 +799,8 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isIdle ? "Type your task… (e.g., fix the auth bug, create a REST API)" : "Follow up…"}
-              className="flex-1 bg-[#1e1e3a] border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-gray-200
-                         placeholder-gray-600 resize-none min-h-[44px] max-h-[200px] focus:outline-none focus:border-cyan-600/50 transition-colors"
+              className="flex-1 bg-card border border-border/50 rounded-xl px-4 py-2.5 text-sm text-foreground
+                         placeholder-muted-foreground/50 resize-none min-h-[44px] max-h-[200px] focus:outline-none focus:border-primary/50 transition-colors"
               rows={1}
               disabled={status === 'running'}
             />
@@ -810,14 +810,14 @@ export const AgenticChat: React.FC<AgenticChatProps> = ({
               </button>
             ) : (
               <button onClick={handleSubmit} disabled={!input.trim()}
-                className="p-2.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 disabled:bg-gray-800 disabled:text-gray-600 text-white transition-colors shrink-0" title="Send (Enter)">
+                className="p-2.5 rounded-xl bg-primary/80 hover:bg-primary disabled:bg-muted disabled:text-muted-foreground/50 text-white transition-colors shrink-0" title="Send (Enter)">
                 <Send className="w-5 h-5" />
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-600 px-1">
+          <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground/50 px-1">
             <span>Enter to send · Shift+Enter for newline</span>
-            {status === 'running' && <span className="text-cyan-600">Processing…</span>}
+            {status === 'running' && <span className="text-primary">Processing…</span>}
           </div>
         </div>
       </div>
