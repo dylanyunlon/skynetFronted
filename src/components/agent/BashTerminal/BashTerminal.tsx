@@ -1,11 +1,9 @@
 /**
  * BashTerminal — Terminal emulator component
- * Displays command history with styled output, supports
- * streaming output and scroll-to-bottom behavior.
+ * v22: Migrated from CSS Modules to Tailwind cn() utilities
  */
 import React, { useRef, useEffect } from 'react';
 import { cn } from '@/lib/cn';
-import styles from './BashTerminal.module.css';
 
 interface TerminalLine {
   id: string;
@@ -25,103 +23,66 @@ interface BashTerminalProps {
   className?: string;
 }
 
-/** Format timestamp for terminal prompt */
-function formatTime(ts?: number): string {
-  if (!ts) return '';
-  const d = new Date(ts);
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
-}
-
-/** Render a single terminal line */
 const TermLine: React.FC<{ line: TerminalLine; workDir?: string }> = ({ line, workDir }) => {
   switch (line.type) {
     case 'command':
       return (
-        <div className={styles.commandLine}>
-          <span className={styles.prompt}>
-            {workDir && <span className={styles.cwd}>{workDir.split('/').pop()}</span>}
-            <span className={styles.promptChar}>$</span>
+        <div className="flex items-start gap-1.5">
+          <span className="flex items-center gap-1 shrink-0">
+            {workDir && <span className="text-emerald-400">{workDir.split('/').pop()}</span>}
+            <span className="text-blue-400">$</span>
           </span>
-          <span className={styles.commandText}>{line.content}</span>
+          <span className="text-[#cdd6f4]">{line.content}</span>
           {line.exitCode !== undefined && line.exitCode !== 0 && (
-            <span className={styles.exitBadge}>exit {line.exitCode}</span>
+            <span className="ml-auto text-red-400 text-[0.625rem] px-1.5 py-0.5 rounded bg-red-400/10 shrink-0">exit {line.exitCode}</span>
           )}
         </div>
       );
     case 'output':
-      return <pre className={styles.outputLine}>{line.content}</pre>;
+      return <pre className="text-[#cdd6f4] m-0 whitespace-pre-wrap break-all">{line.content}</pre>;
     case 'error':
-      return <pre className={cn(styles.outputLine, styles.errorLine)}>{line.content}</pre>;
+      return <pre className="text-red-400 m-0 whitespace-pre-wrap break-all">{line.content}</pre>;
     case 'info':
-      return <div className={styles.infoLine}>{line.content}</div>;
+      return <div className="text-emerald-400">{line.content}</div>;
     case 'separator':
-      return <hr className={styles.separator} />;
+      return <hr className="border-[#313244] my-1" />;
     default:
       return null;
   }
 };
 
 const BashTerminal: React.FC<BashTerminalProps> = ({
-  lines,
-  title = 'Terminal',
-  isRunning,
-  currentCommand,
-  workDir,
-  maxHeight = 400,
-  className,
+  lines, title = 'Terminal', isRunning, currentCommand, workDir, maxHeight = 400, className,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom on new lines
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [lines.length]);
+  useEffect(() => { scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight); }, [lines.length]);
 
   return (
-    <div className={cn(styles.wrapper, className)}>
-      {/* Title bar */}
-      <div className={styles.titleBar}>
-        <div className={styles.trafficLights}>
-          <span className={cn(styles.dot, styles.red)} />
-          <span className={cn(styles.dot, styles.yellow)} />
-          <span className={cn(styles.dot, styles.green)} />
+    <div className={cn('rounded-xl overflow-hidden border border-[#3a3a3a]', className)}>
+      {/* macOS title bar */}
+      <div className="flex items-center px-3 py-2 bg-[#2d2d2d]">
+        <div className="flex gap-1.5">
+          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </div>
-        <span className={styles.title}>{title}</span>
-        <div className={styles.titleRight}>
-          {isRunning && <span className={styles.runningIndicator}>⏳</span>}
-        </div>
+        <span className="flex-1 text-center text-xs text-[#999]">{title}</span>
+        <div className="w-12 flex justify-end">{isRunning && <span>⏳</span>}</div>
       </div>
-
       {/* Terminal body */}
-      <div
-        ref={scrollRef}
-        className={styles.body}
-        style={{ maxHeight }}
-      >
-        {lines.map((line) => (
-          <TermLine key={line.id} line={line} workDir={workDir} />
-        ))}
-
-        {/* Current running command cursor */}
+      <div ref={scrollRef} className="bg-[#1a1a1a] p-3 overflow-auto font-mono text-xs leading-relaxed" style={{ maxHeight }}>
+        {lines.map((line) => <TermLine key={line.id} line={line} workDir={workDir} />)}
         {isRunning && currentCommand && (
-          <div className={styles.commandLine}>
-            <span className={styles.prompt}>
-              <span className={styles.promptChar}>$</span>
-            </span>
-            <span className={styles.commandText}>{currentCommand}</span>
-            <span className={styles.cursor} />
+          <div className="flex items-start gap-1.5">
+            <span className="text-blue-400">$</span>
+            <span className="text-[#cdd6f4]">{currentCommand}</span>
+            <span className="animate-pulse">▋</span>
           </div>
         )}
-
-        {/* Blinking cursor when idle & running */}
         {isRunning && !currentCommand && (
-          <div className={styles.commandLine}>
-            <span className={styles.prompt}>
-              <span className={styles.promptChar}>$</span>
-            </span>
-            <span className={styles.cursor} />
+          <div className="flex items-start gap-1.5">
+            <span className="text-blue-400">$</span>
+            <span className="animate-pulse">▋</span>
           </div>
         )}
       </div>

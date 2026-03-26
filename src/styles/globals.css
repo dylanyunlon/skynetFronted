@@ -20,8 +20,6 @@
 @import url("@radix-ui/colors/purple.css") layer(base);
 @import url("@radix-ui/colors/red-dark.css") layer(base);
 @import url("@radix-ui/colors/red.css") layer(base);
-@import url("@radix-ui/colors/sage-dark.css") layer(base);
-@import url("@radix-ui/colors/sage.css") layer(base);
 @import url("@radix-ui/colors/sky-dark.css") layer(base);
 @import url("@radix-ui/colors/sky.css") layer(base);
 @import url("@radix-ui/colors/slate-dark.css") layer(base);

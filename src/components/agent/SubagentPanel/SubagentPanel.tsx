@@ -1,12 +1,10 @@
 /**
  * SubagentPanel — Recursive sub-agent task display
- * Shows sub-agent lifecycle: start → running → result
- * Supports nested sub-agents (recursive rendering)
+ * v22: Migrated from CSS Modules to Tailwind cn() utilities
  */
 import React, { useState } from 'react';
 import { cn } from '@/lib/cn';
 import type { AgenticBlock, ToolResultMeta } from '@/types/agentic';
-import styles from './SubagentPanel.module.css';
 
 interface SubagentInfo {
   id: string;
@@ -16,8 +14,8 @@ interface SubagentInfo {
   resultMeta?: ToolResultMeta;
   isRunning: boolean;
   turns?: number;
-  blocks?: AgenticBlock[];   // nested blocks for recursive rendering
-  children?: SubagentInfo[]; // nested sub-agents
+  blocks?: AgenticBlock[];
+  children?: SubagentInfo[];
 }
 
 interface SubagentPanelProps {
@@ -34,87 +32,56 @@ const TYPE_META: Record<string, { label: string; icon: string; accent: string }>
 
 const MAX_DEPTH = 4;
 
-const SubagentPanel: React.FC<SubagentPanelProps> = ({
-  agent,
-  depth = 0,
-  className,
-}) => {
+const SubagentPanel: React.FC<SubagentPanelProps> = ({ agent, depth = 0, className }) => {
   const [expanded, setExpanded] = useState(depth < 2);
   const meta = TYPE_META[agent.type] || TYPE_META.general;
 
   if (depth >= MAX_DEPTH) {
     return (
-      <div className={cn(styles.wrapper, styles.maxDepth, className)}>
-        <span className={styles.maxDepthLabel}>⚠ Max nesting depth reached</span>
+      <div className={cn('border border-dashed border-amber-400/40 rounded-lg px-3 py-2 opacity-60', className)}>
+        <span className="text-xs text-amber-500">⚠ Max nesting depth reached</span>
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(styles.wrapper, className)}
-      style={{
-        '--agent-accent': meta.accent,
-        '--agent-depth': depth,
-      } as React.CSSProperties}
-    >
-      {/* Header */}
-      <button className={styles.header} onClick={() => setExpanded(!expanded)}>
-        <span className={styles.depthBar} />
-        <span className={styles.icon}>{meta.icon}</span>
-        <div className={styles.headerText}>
-          <span className={styles.typeLabel}>{meta.label}</span>
-          <span className={styles.prompt}>
-            {agent.prompt.length > 100
-              ? agent.prompt.slice(0, 100) + '…'
-              : agent.prompt}
-          </span>
+    <div className={cn('border-l-2 rounded-lg overflow-hidden', className)}
+      style={{ borderLeftColor: meta.accent, marginLeft: depth > 0 ? '0.75rem' : undefined }}>
+
+      <button className="flex items-center gap-2 w-full px-3 py-2 bg-transparent border-none text-left cursor-pointer hover:bg-[var(--sky-bg-hover)] transition-colors" onClick={() => setExpanded(!expanded)}>
+        <span className="text-base">{meta.icon}</span>
+        <div className="flex-1 min-w-0 flex flex-col gap-px">
+          <span className="text-xs font-semibold text-[var(--sky-text-secondary)] uppercase tracking-wider">{meta.label}</span>
+          <span className="text-[0.8125rem] text-[var(--sky-text)] truncate">{agent.prompt.length > 100 ? agent.prompt.slice(0, 100) + '…' : agent.prompt}</span>
         </div>
-        <div className={styles.headerBadges}>
+        <div className="flex items-center gap-2 shrink-0">
           {agent.isRunning && (
-            <span className={styles.runningBadge}>
-              <span className={styles.dot} />
-              Running
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Running
             </span>
           )}
-          {agent.turns !== undefined && (
-            <span className={styles.turnsBadge}>{agent.turns} turns</span>
-          )}
-          <span className={styles.chevron} data-expanded={expanded}>▸</span>
+          {agent.turns !== undefined && <span className="text-xs text-[var(--sky-text-tertiary)] tabular-nums">{agent.turns} turns</span>}
+          <span className={cn('text-xs text-[var(--sky-text-tertiary)] transition-transform duration-100', expanded && 'rotate-90')}>▸</span>
         </div>
       </button>
 
-      {/* Expanded content */}
       {expanded && (
-        <div className={styles.body}>
-          {/* Prompt */}
-          <div className={styles.section}>
-            <div className={styles.sectionLabel}>Prompt</div>
-            <p className={styles.sectionText}>{agent.prompt}</p>
+        <div className="px-3 pb-3 space-y-2 animate-in slide-in-from-top-1">
+          <div>
+            <div className="text-[10px] font-medium text-[var(--sky-text-tertiary)] uppercase tracking-wider mb-1">Prompt</div>
+            <p className="text-[0.8125rem] text-[var(--sky-text)] leading-relaxed m-0">{agent.prompt}</p>
           </div>
-
-          {/* Result */}
           {agent.result && (
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>Result</div>
-              <pre className={styles.resultPre}>
-                {agent.result.length > 500
-                  ? agent.result.slice(0, 500) + '\n… (truncated)'
-                  : agent.result}
+            <div>
+              <div className="text-[10px] font-medium text-[var(--sky-text-tertiary)] uppercase tracking-wider mb-1">Result</div>
+              <pre className="text-xs font-mono text-[var(--sky-text-secondary)] whitespace-pre-wrap break-all bg-[var(--sky-bg-secondary)] rounded-md p-2 max-h-48 overflow-auto m-0">
+                {agent.result.length > 500 ? agent.result.slice(0, 500) + '\n… (truncated)' : agent.result}
               </pre>
             </div>
           )}
-
-          {/* Nested sub-agents */}
           {agent.children && agent.children.length > 0 && (
-            <div className={styles.nested}>
-              {agent.children.map((child) => (
-                <SubagentPanel
-                  key={child.id}
-                  agent={child}
-                  depth={depth + 1}
-                />
-              ))}
+            <div className="space-y-2 mt-2">
+              {agent.children.map((child) => <SubagentPanel key={child.id} agent={child} depth={depth + 1} />)}
             </div>
           )}
         </div>
